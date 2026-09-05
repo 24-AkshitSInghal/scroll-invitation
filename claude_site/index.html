@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Dr. Shubhanu &amp; Dr. Shubhangi — Engagement Invitation</title>
 <meta name="description" content="With the blessings of our families — the engagement and roka ceremony of Dr. Shubhanu Tayal and Dr. Shubhangi Bansal. 21 September 2026, The Mansion Banquet, Meerut.">
 <meta name="theme-color" content="#f7f1e6">
@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@1,500;1,600;1,700&family=Jost:wght@300;400;500&display=swap" onload="this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@1,500;1,600;1,700&family=Jost:wght@300;400;500&display=swap"></noscript>
-<link rel="stylesheet" href="assets/css/site.css?v=31">
+<link rel="stylesheet" href="assets/css/site.css?v=32">
 
 <link rel="preload" as="image" href="assets/frames/c1/001.webp" fetchpriority="high">
 </head>
@@ -48,22 +48,22 @@
     <div class="copylayer">
 
       <!-- 1 · opening ------------------------------------------------------ -->
-      <section class="copy" data-place="lower" aria-label="Welcome">
-        <div class="stack">
-          <!-- greets on landing, steps aside as the monogram draws itself -->
+      <section class="copy" data-place="center" aria-label="Welcome">
+        <div>
+          <!-- greets on landing, centred so the invitation to scroll is the
+               first thing anyone reads -->
           <div data-fade="-0.05,-0.01,0.26,0.42">
             <p class="eyebrow">You are invited</p>
             <p class="lede" style="margin-top:0">A celebration written in the clouds.</p>
           </div>
-          <!-- the monogram completes at ~85% of clip 1; the hashtag lands beneath it -->
-          <div data-fade="0.74,0.88,1,1">
-            <p class="hashtag"><i>#</i>ShubhMilan</p>
+          <div class="cue" data-fade="-0.05,-0.01,0.30,0.46">
+            <span class="cue__line"></span>
+            Scroll to begin
           </div>
         </div>
-        <div class="cue" data-fade="-0.05,-0.01,0.30,0.46">
-          <span class="cue__line"></span>
-          Scroll to begin our celebration
-        </div>
+        <!-- the monogram completes near the end of clip 1; the hashtag lands
+             beneath it rather than over it -->
+        <p class="hashtag open__tag" data-fade="0.74,0.88,1,1"><i>#</i>ShubhMilan</p>
       </section>
 
       <!-- 2 · the couple --------------------------------------------------- -->
@@ -112,7 +112,7 @@
           <span class="scratch__glow" aria-hidden="true"></span>
           <div class="scratch__prize">
             <p class="scratch__label">Save the Date</p>
-            <p class="scratch__date">21 September<br>2026</p>
+            <p class="scratch__date"><b>21</b> September<br>2026</p>
             <p class="scratch__day">Monday</p>
           </div>
           <canvas class="scratch__foil" role="img"
@@ -131,7 +131,7 @@
       <section class="copy" data-place="center" aria-label="The ceremony">
         <div>
           <p class="eyebrow">Engagement &amp; Roka Ceremony</p>
-          <h2 class="display display--sm">21 September 2026</h2>
+          <h2 class="display display--sm"><b>21</b> September 2026</h2>
           <p class="meta"><strong>5:00 PM onwards</strong></p>
           <div class="countdown" aria-label="Time remaining"></div>
           <div class="btnrow">
@@ -244,9 +244,9 @@
 <!-- the scroll track: the only element with real height -->
 <div class="track" aria-hidden="true"></div>
 
-<script src="assets/js/invite.config.js?v=31"></script>
-<script src="assets/js/film.js?v=31"></script>
-<script src="assets/js/scroll-film.js?v=31"></script>
-<script src="assets/js/interactions.js?v=31"></script>
+<script src="assets/js/invite.config.js?v=32"></script>
+<script src="assets/js/film.js?v=32"></script>
+<script src="assets/js/scroll-film.js?v=32"></script>
+<script src="assets/js/interactions.js?v=32"></script>
 </body>
 </html>

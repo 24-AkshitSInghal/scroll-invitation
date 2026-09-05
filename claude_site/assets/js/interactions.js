@@ -12,6 +12,22 @@
   const cfg = window.INVITE;
   const $ = (s, c) => (c || document).querySelector(s);
 
+  /* ------------------------------------------------------------------ zoom */
+  // iOS has ignored user-scalable=no since iOS 10, so the viewport meta alone
+  // does not hold. Cancelling Safari's own gesture events is what actually stops
+  // a pinch, and blocking the second tap of a double-tap stops that zoom too.
+  // Both are deliberate: the layout is measured against a 9:16 frame and every
+  // overlay is pinned to painted artwork, so a zoom pulls them off their marks.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach((g) => {
+    document.addEventListener(g, (e) => e.preventDefault(), { passive: false });
+  });
+  let lastTap = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTap < 320 && e.touches.length === 0) e.preventDefault();
+    lastTap = now;
+  }, { passive: false });
+
   /* ---------------------------------------------------------------- scratch */
   // A canvas of gold foil sits exactly over the medallion's blank centre. The
   // visitor rubs it away with destination-out arcs; once enough is cleared we

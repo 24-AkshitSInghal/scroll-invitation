@@ -214,6 +214,30 @@ that is — a fast flick degrades to a slightly stale frame rather than a stall.
 Regenerate with `tools/frames.sh`; `N=72 ./tools/frames.sh` for a finer sequence
 at proportionally more bytes.
 
+### It behaves like a card, not a document
+
+`user-select: none` and `-webkit-touch-callout: none` on `<html>`, so dragging
+across the film never leaves a blue selection or pops a callout. **Form fields
+opt back in** (`input, textarea, select`) — selection there is how you edit.
+
+Zoom is off for the same reason: the layout is measured against a 9:16 frame and
+every overlay is pinned to painted artwork, so a pinch pulls the scratch card and
+the RSVP panel off their marks. iOS has ignored `user-scalable=no` since iOS 10,
+so the meta tag alone does not hold — `touch-action: pan-y` drops the pinch while
+keeping vertical scroll, and `interactions.js` cancels Safari's own
+`gesturestart`/`gesturechange`/`gestureend` and the second tap of a double-tap.
+It is a deliberate accessibility trade-off; undo it by removing that block and
+`maximum-scale=1` if you would rather people could zoom.
+
+### No opening auto-scroll
+
+The film used to fly its first scene on load. It doesn't any more: the landing
+screen centres "You are invited" and **Scroll to begin** in the middle of the
+frame, so the first thing anyone reads is what to do. Moving the page for people
+made it unclear whether anything was theirs to control. The opening hashtag is
+parked at 77.5% of the picture so it lands *below* the monogram once that
+finishes drawing, rather than over it.
+
 ### The gate
 
 Everything loads behind the **Open Invitation** button. It costs a wait up front,

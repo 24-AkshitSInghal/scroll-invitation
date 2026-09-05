@@ -32,6 +32,22 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* This reads as a card, not a document: dragging across it should never leave a
+   blue selection, and a pinch should never break the 9:16 framing the whole
+   layout is measured against. `pan-y` keeps vertical scrolling and drops the
+   pinch gesture; iOS also needs the gesture events cancelled (interactions.js).
+   Form fields opt back in below — selection there is how you edit. */
+html {
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: pan-y;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+}
+input, textarea, select {
+  -webkit-user-select: text; user-select: text;
+  -webkit-touch-callout: default;
+}
+
 html { background: var(--ivory); }
 
 body {
@@ -149,6 +165,17 @@ img { max-width: 100%; display: block; }
    themselves (see .portrait) so the two never clobber each other. */
 [data-par] { transform: translate3d(0, var(--par, 0px), 0); will-change: transform; }
 
+/* The opening hashtag is parked below the monogram in picture space, so the
+   greeting can own the centre of the landing screen without the two colliding
+   once the monogram finishes drawing itself. */
+.open__tag {
+  position: absolute;
+  left: calc(var(--vx, 0px) + 0.50 * var(--vw, 100%));
+  top:  calc(var(--vy, 0px) + 0.775 * var(--vh, 100%));
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
 /* Two lines of copy sharing one spot, cross-fading in place. */
 .stack { display: grid; }
 .stack > * { grid-area: 1 / 1; align-self: end; }
@@ -174,6 +201,7 @@ img { max-width: 100%; display: block; }
   color: var(--ink);
 }
 .display--sm { font-size: clamp(22px, 3.4vh, 38px); }
+.display--sm b { font-weight: 500; font-size: 1.34em; letter-spacing: -.02em; margin-right: .03em; }
 /* the finale sets both names on one line — size it to survive a 375px phone */
 .display--names { font-size: clamp(17px, 2.7vh, 30px); }
 .amp {
@@ -417,6 +445,10 @@ img { max-width: 100%; display: block; }
 .scratch__date {
   margin: 0; font-family: var(--font-display); font-style: italic;
   font-size: clamp(32px, 5.2vh, 62px); line-height: 1.05; color: #47281f;
+}
+.scratch__date b {
+  font-weight: 500; font-size: 1.34em; line-height: 1;
+  letter-spacing: -.02em; margin-right: .04em;
 }
 .scratch__day {
   margin: .7em 0 0; font-size: clamp(11px, 1.5vh, 14px);

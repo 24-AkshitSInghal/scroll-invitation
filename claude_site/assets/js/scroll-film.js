@@ -306,7 +306,6 @@
     document.documentElement.classList.remove('is-locked');
     setTimeout(() => { if (curtain.parentNode) curtain.remove(); }, 1200);
     window.dispatchEvent(new CustomEvent('invitation:open'));   // music listens
-    setTimeout(autoIntro, 500);
   }
 
   document.documentElement.classList.add('is-locked');
@@ -323,48 +322,10 @@
     if (pct) pct.textContent = '';
   });
 
-  /* -- the opening flight --------------------------------------------------- */
-  /* Once the curtain is up we fly the first scene ourselves, slowly, so the
-     monogram draws itself without the visitor having to do anything — then stop
-     and hand over. Any real scroll intent aborts it instantly: this must never
-     fight someone who has decided to move. */
-  function autoIntro() {
-    if (reduce) return;
-    const sc = scenes[0];
-    const target = sc.start + (sc.end - sc.start) * 0.93;   // monogram complete
-    const DUR = 8500;
-    let t0 = null, stop = false;
-
-    const cancel = () => {
-      if (stop) return;
-      stop = true;
-      removeEventListener('wheel', cancel);
-      removeEventListener('touchmove', cancel);
-      removeEventListener('keydown', cancel);
-    };
-    addEventListener('wheel', cancel, { passive: true });
-    addEventListener('touchmove', cancel, { passive: true });
-    addEventListener('keydown', cancel);
-
-    function step(ts) {
-      if (stop) return;
-      if (t0 === null) t0 = ts;
-      const p = clamp((ts - t0) / DUR);
-      // ease-in-out: drifts away from rest, and arrives at rest
-      const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-      scrollTo(0, target * e);
-      if (p < 1) requestAnimationFrame(step); else cancel();
-    }
-    requestAnimationFrame(step);
-  }
-
-  // Only from a cold start at the top — never yank someone who reloaded midway
-  // or followed a link with a restored scroll position.
+  // The film no longer flies itself on load. The landing screen says "scroll to
+  // begin" in the middle of the frame; moving the page for people made it
+  // unclear whether anything was theirs to control.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  addEventListener('load', () => {
-    if ((scrollY || pageYOffset) >= 4) return;
-    setTimeout(autoIntro, 700);
-  });
 
   window.FILM = { scenes, layout, read, isMobile };
 })();
