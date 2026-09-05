@@ -22,6 +22,7 @@
     if (!wrap || !canvas) return;
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const skip = document.querySelector('.scratch__skip');
     let sized = false, drawing = false, done = false, since = 0, last = null;
 
     function paintFoil() {
@@ -35,23 +36,23 @@
       // Antique gold with a bright sheen band raking across it, so it reads as
       // struck foil rather than a flat swatch.
       const g = ctx.createLinearGradient(0, 0, r.width, r.height);
-      g.addColorStop(0.00, '#8a6420');
-      g.addColorStop(0.13, '#b9903f');
-      g.addColorStop(0.29, '#e3c977');
+      g.addColorStop(0.00, '#75510f');
+      g.addColorStop(0.13, '#a87f2c');
+      g.addColorStop(0.29, '#d9b862');
       g.addColorStop(0.42, '#fdf3d2');   // sheen
-      g.addColorStop(0.50, '#f6e3ac');
-      g.addColorStop(0.62, '#d4ae62');
-      g.addColorStop(0.78, '#a8801f');
-      g.addColorStop(0.92, '#d9b869');
-      g.addColorStop(1.00, '#8a641f');
+      g.addColorStop(0.50, '#efdb9a');
+      g.addColorStop(0.62, '#c69c46');
+      g.addColorStop(0.78, '#8f6a14');
+      g.addColorStop(0.92, '#cda94f');
+      g.addColorStop(1.00, '#6e4b0d');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, r.width, r.height);
 
       // A soft radial lift in the middle so the disc looks domed, not printed.
       const rg = ctx.createRadialGradient(r.width * 0.4, r.height * 0.34, 0,
                                           r.width * 0.5, r.height * 0.5, r.width * 0.72);
-      rg.addColorStop(0, 'rgba(255,250,225,.55)');
-      rg.addColorStop(1, 'rgba(90,64,10,.18)');
+      rg.addColorStop(0, 'rgba(255,248,214,.30)');
+      rg.addColorStop(1, 'rgba(74,50,4,.34)');
       ctx.fillStyle = rg;
       ctx.fillRect(0, 0, r.width, r.height);
 
@@ -109,6 +110,7 @@
         }
       }
       wrap.classList.add('is-revealed');
+      if (skip) skip.classList.add('is-done');
     }
 
     function start(e) {
@@ -138,7 +140,6 @@
     addEventListener('pointercancel', end);
 
     // Keyboard / assistive path — nobody should be locked out by a rub gesture.
-    const skip = document.querySelector('.scratch__skip');
     if (skip) skip.addEventListener('click', finish);
 
     new ResizeObserver(() => { if (!done) { sized = false; paintFoil(); } }).observe(wrap);

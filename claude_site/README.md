@@ -46,7 +46,7 @@ The payload is `{ name, attending, message, submittedAt }`.
 | 1 | c1 | Monogram opening | **Auto-flies itself** on load; `#ShubhMilan` appears as the monogram finishes drawing |
 | 2 | c2 | The couple | Names inside the floral arch |
 | 3 | c3 | Families | Both sets of parents |
-| 4 | c4 | Save the date | **Scratch card** — rose-gold foil filling the medallion (73.5% of picture width, the measured disc), with a bloom + petal burst on reveal |
+| 4 | c4 | Save the date | **Scratch card** — antique-gold foil filling the medallion (73.5% of picture width, 1px inside the ring), with a gold bloom + petal burst on reveal |
 | 5 | c5 | Ceremony | Live countdown + Add to calendar (`.ics`) |
 | 6 | c6 | Venue | Address + Open map |
 | 7 | c7 | RSVP | **Form** on the silk panel, held to 58% of the picture so both birds stay visible |
@@ -74,6 +74,10 @@ The payload is `{ name, attending, message, submittedAt }`.
   scene's ramps start slightly negative.
 
 ### Type
+
+No `:has()` anywhere: iOS Safari 15 doesn't support it, and the one place it was
+used (hiding the reveal button once the date is showing) would simply have failed
+open on an older iPhone. The reveal code sets a class instead.
 
 `#ShubhMilan` is the one thing guests have to remember, so it gets its own face:
 **Playfair Display** italic 600 (`--font-tag`), well above the body serif in size
@@ -131,7 +135,12 @@ in the film, use those, not percentages.
 
 Measured off the frames themselves:
 
-- medallion blank disc — centre `49.8% / 46.9%`, diameter `74%` of picture width
+- medallion blank disc — centre `49.35% / 47.76%`, diameter `73.9%` of picture
+  width (`74.6%` down — it is very slightly oval, so the foil takes the smaller).
+  Measured by walking out from the disc's interior to the gold ring's luminance
+  edge on a 540×960 sample of the final frame; eyeballing it off a screenshot had
+  the centre ~1% high, which is enough to leave a visible crescent of bare ring
+  along the bottom.
 - RSVP silk panel — `18.5%–83%` across, `16.7%–81%` down
 
 ---

@@ -403,7 +403,7 @@ img { max-width: 100%; display: block; }
 .scratch__skip:hover  { transform: translateX(-50%) translateY(-2px); }
 .scratch__skip:active { transform: translateX(-50%); }
 .scratch__skip:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
-.copy:has(.scratch.is-revealed) .scratch__skip { opacity: 0; pointer-events: none; }
+.scratch__skip.is-done { opacity: 0; pointer-events: none; }
 
 /* -- countdown ------------------------------------------------------------ */
 .countdown {
