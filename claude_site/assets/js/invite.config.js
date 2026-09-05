@@ -20,12 +20,16 @@
               the seam. f(0)=0 and f(1)=1 are preserved, so the seam frames are
               untouched and the flight stays continuous across the join.
      copy   : [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd] in local 0..1
-     parallax: viewport-heights the copy drifts across the scene. The film itself
-              is a camera move and must never be transformed, so depth comes from
-              the overlay travelling at its own rate against it. MUST be 0 for
-              any scene whose overlay is locked to painted artwork — the scratch
-              medallion and the RSVP silk panel — or it slides off its target.
-              Individual elements can carry data-par="<vh>" for their own layer.
+     from/to: the SLICE of the clip this scene owns, 0..1. Two scenes use it —
+              the photograph carries clip 2 from 72%, the closing card carries
+              clip 8 from 70% — so the film keeps running underneath them instead
+              of freezing on a held frame, which is what read as the scroll
+              pausing. Consecutive slices of one clip are seamless by definition.
+     anchored: true where the overlay sits on painted artwork (the medallion, the
+              RSVP silk panel, the portrait frame). Suppresses the entrance rise
+              so the overlay is never offset from the thing it is pinned to — not
+              even while fading in, which is already inside the window where it
+              accepts a tap.
    ========================================================================== */
 
 window.INVITE = {
@@ -90,9 +94,11 @@ window.INVITE = {
   /* -- the film ------------------------------------------------------------ */
   /* Frames per clip. The film is a WebP frame sequence, not video: scroll picks
      an array index, so there is no seeking and no video decoder involved. See
-     film.js for why. `still: true` pins a scene to its sequence's LAST frame —
-     that is how the portrait and the closing card rest on the frame the previous
-     clip ended on without shipping a second copy of anything. */
+     film.js for why. `from`/`to` give a scene a SLICE of its clip: the couple
+     play clip 2 up to 72% and the photograph carries it from there, so the film
+     keeps running underneath rather than freezing on a held still. Clip 8 is
+     split the same way, which is what lands the closing card exactly as the
+     film runs out. */
   frameCount: 56,
   diveScroll: 1.45,        // default viewport-heights per scene
   crossfade: 0.16,         // seam dissolve width, in viewport-heights
@@ -101,71 +107,67 @@ window.INVITE = {
     {
       id: 'open', label: 'Welcome', kind: 'open',
       frames: 'assets/frames/c1',
-      scroll: 1.9, settle: 0.88, copy: [-0.05, -0.01, 1, 1], parallax: 0.9,
+      scroll: 2.0, settle: 0.70, copy: [-0.05, -0.01, 1, 1],
       place: 'lower',
     },
     {
       id: 'couple', label: 'The Couple', kind: 'couple',
       frames: 'assets/frames/c2',
-      scroll: 1.7, settle: 1, linger: 0.35, copy: [0.42, 0.60, 0.92, 1], parallax: 1.6,
+      scroll: 2.1, settle: 1, linger: 0.35, to: 0.72, copy: [0.40, 0.58, 0.90, 1],
       place: 'center',
     },
     {
-      /* Clipless, like the closing card: clip 2 has come to rest on its floral
-         wreath, so this scene holds that frame and the portrait settles into the
-         wreath's opening. Clip 3 was chained from this same frame, so the flight
-         picks straight back up afterwards. */
-      /* anchored: the frame is pinned to the wreath's opening, so the scene
-         itself must not shift it. Depth comes from the photo and the names
-         carrying their own data-par layers instead. */
+      /* The second half of clip 2, not a still: the photograph gets its own
+         screen while the camera keeps drifting through the last quarter of the
+         wreath shot. A frozen frame here was the "scroll pauses" everyone felt. */
       id: 'portrait', label: 'The Two of Us', kind: 'portrait',
-      frames: 'assets/frames/c2', still: true,
-      scroll: 1.7, settle: 1, copy: [0.16, 0.38, 0.88, 0.99], parallax: 0, anchored: true,
+      frames: 'assets/frames/c2',
+      scroll: 2.3, settle: 1, from: 0.72, copy: [0.14, 0.34, 0.90, 1],
       place: 'fill',
     },
     {
       id: 'family', label: 'Our Families', kind: 'family',
       frames: 'assets/frames/c3',
-      scroll: 1.7, settle: 1, linger: 0.35, copy: [0.44, 0.62, 0.92, 1], parallax: 1.6,
+      scroll: 2.1, settle: 1, linger: 0.35, copy: [0.42, 0.60, 0.92, 1],
       place: 'center',
     },
     {
       id: 'savethedate', label: 'Save the Date', kind: 'scratch',
       frames: 'assets/frames/c4',
-      scroll: 2.5, settle: 0.42, copy: [0.42, 0.54, 1, 1], parallax: 0, anchored: true,   // locked to the medallion
+      scroll: 2.6, settle: 0.42, copy: [0.38, 0.50, 1, 1], anchored: true,   // locked to the medallion
       place: 'fill',
     },
     {
       id: 'ceremony', label: 'The Ceremony', kind: 'ceremony',
       frames: 'assets/frames/c5',
-      scroll: 2.0, settle: 1, linger: 0.35, copy: [0.40, 0.58, 0.94, 1], parallax: 1.4,
+      scroll: 2.4, settle: 1, linger: 0.35, copy: [0.38, 0.56, 0.94, 1],
       place: 'center',
     },
     {
       id: 'venue', label: 'The Venue', kind: 'venue',
       frames: 'assets/frames/c6',
-      scroll: 2.1, settle: 1, linger: 0.35, copy: [0.46, 0.64, 0.96, 1], parallax: 1.3,
+      scroll: 2.5, settle: 1, linger: 0.35, copy: [0.42, 0.60, 0.96, 1],
       place: 'lower',
     },
     {
       id: 'rsvp', label: 'RSVP', kind: 'rsvp',
       frames: 'assets/frames/c7',
-      scroll: 2.8, settle: 0.38, copy: [0.38, 0.50, 1, 1], parallax: 0, anchored: true,   // locked to the silk panel
+      scroll: 2.9, settle: 0.34, copy: [0.34, 0.46, 0.94, 1], anchored: true,   // locked to the silk panel
       place: 'fill',
     },
     {
       id: 'blessing', label: 'Blessings', kind: 'finale',
       frames: 'assets/frames/c8',
-      scroll: 2.0, settle: 0.72, copy: [0.40, 0.56, 0.86, 0.98], parallax: 1.3,
+      scroll: 2.9, settle: 1, to: 0.70, copy: [0.44, 0.60, 0.90, 1],
       place: 'center',
     },
     {
-      /* No clip of its own: the camera has already come to rest on clip 8's last
-         frame, so this scene holds that exact frame as a still and the closing
-         card settles onto it. Same picture across the seam, so nothing moves. */
+      /* The last 30% of clip 8. The wreath finishes drawing itself across this
+         scene, so the closing card arrives exactly as the film reaches its final
+         frame and the whole flight comes to rest together. */
       id: 'hosts', label: 'With Love', kind: 'hosts',
-      frames: 'assets/frames/c8', still: true,
-      scroll: 1.7, settle: 1, copy: [0.16, 0.38, 1, 1], parallax: 1.1,
+      frames: 'assets/frames/c8',
+      scroll: 2.4, settle: 1, from: 0.70, copy: [0.30, 0.50, 1, 1],
       place: 'center',
     },
   ],

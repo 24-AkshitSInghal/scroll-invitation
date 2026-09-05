@@ -1,10 +1,13 @@
 # ShubhMilan — scroll invitation
 
-An Apple-style scroll-scrubbed invitation. The eight rendered clips form **one
-continuous camera flight** across ten scenes; scroll doesn't animate anything, it sets the video's
-`currentTime`. Because each clip was generated starting from the previous clip's
+An Apple-style scroll-driven invitation. The eight rendered clips form **one
+continuous camera flight** across ten scenes; scroll doesn't animate anything, it
+picks a frame. Because each clip was generated starting from the previous clip's
 actual last frame, the joins are frame-identical and the flight reads as a single
 unbroken shot.
+
+**There is no video on this page.** The film is a WebP frame sequence drawn into
+a canvas — see *The film is frames* below for why that matters.
 
 Plain HTML/CSS/JS. No build step, no dependencies, no framework.
 
@@ -44,42 +47,38 @@ The payload is `{ name, attending, message, submittedAt }`.
 
 | # | Clip | Scene | Notes |
 |---|------|-------|-------|
-| 1 | c1 | Monogram opening | **Auto-flies itself** on load; `#ShubhMilan` appears as the monogram finishes drawing |
-| 2 | c2 | The couple | Names inside the floral arch |
-| 3 | — | The two of us | The couple's photograph, arch-framed inside the wreath. **No clip of its own** — holds clip 2's final frame (`poster/c2b.jpg`) |
+| 1 | c1 | Monogram opening | Greeting centred on landing; the monogram completes at 70% and `#ShubhMilan` lands with it |
+| 2 | c2 (0–72%) | The couple | Names inside the floral arch |
+| 3 | c2 (72–100%) | The two of us | The couple's photograph. **The second half of clip 2** — the camera keeps drifting while the photo is up, rather than freezing on a still |
 | 4 | c3 | Families | Both sets of parents |
-| 5 | c4 | Save the date | **Scratch card** — antique-gold foil filling the medallion (73.5% of picture width, 1px inside the ring), with a gold bloom + petal burst on reveal |
+| 5 | c4 | Save the date | **Reveal button** in the middle of the medallion, with a gold bloom + petal burst |
 | 6 | c5 | Ceremony | Live countdown + Add to calendar (`.ics`) |
 | 7 | c6 | Venue | Address + Open map |
 | 8 | c7 | RSVP | **Form** on the silk panel, held to 58% of the picture so both birds stay visible |
-| 9 | c8 | Blessings | Closing line, names, hashtag |
-| 10 | — | With love | Hosts + tap-to-call numbers. **No clip of its own**: the camera has already come to rest, so this scene holds clip 8's final frame as a still (`poster/c9.jpg`) and the card settles onto it. Same picture across the seam, so nothing moves. |
+| 9 | c8 (0–70%) | Blessings | Closing line, names, hashtag |
+| 10 | c8 (70–100%) | With love | Hosts + tap-to-call numbers. **The last 30% of clip 8** — the wreath finishes drawing across this scene, so the card lands exactly as the film runs out |
 
 ### Pacing knobs (per section, in `invite.config.js`)
 
 - **`scroll`** — viewport-heights of scroll the scene occupies. Bigger = slower.
 - **`settle`** — `0..1`. The clip reaches its **final frame** at this point in the
-  band and comes to a genuine **rest** there. Only for scenes meant to stop:
-  the logo hold (1), the scratch card (4), the RSVP panel (7) and the finale (8).
-  Scenes 4 and 7 settle early — `0.42` and `0.38` — so the medallion and the silk
-  panel are locked perfectly still while someone is scratching or typing.
+  band and comes to a genuine **rest** there. Only for scenes meant to stop: the
+  logo hold (1, at `0.70`), the medallion (5, at `0.42`) and the RSVP panel
+  (8, at `0.34`) — the last two settle early so the artwork is locked perfectly
+  still while someone is tapping or typing on it.
 - **`linger`** — `0..0.6`. The alternative to stopping: it slows the camera
   through the middle of the scene, where the copy peaks, and lets it run at full
   speed into the seam. `f(0)=0` and `f(1)=1` are preserved exactly, so the frames
   either side of a join are still the ones the clips were chained on. The four
   transit scenes (2, 3, 5, 6) use this — a `settle` hold mid-flight reads as the
   camera stalling, which is what made the earlier joins feel like cuts.
-- **`parallax`** — viewport-heights the scene's copy drifts as you pass through
-  it, centred on mid-scene so it rises through the frame rather than starting or
-  ending displaced. **The film itself is never transformed** — doing so would
-  break the seams and pull the video-space anchors off their artwork — so all
-  depth comes from the overlays moving at their own rate against it.
-- **`anchored`** — `true` for the three scenes whose overlay sits on painted
-  artwork: the scratch medallion, the RSVP silk panel and the portrait frame.
-  It suppresses the entrance rise as well as the parallax. This matters more than
-  it looks: the entrance offset alone was displacing the scratch card and the
-  RSVP panel by up to 13.5px while they faded in — already inside the window
-  where they accept a scratch or a tap.
+- **`from`/`to`** — the **slice** of its clip a scene owns, `0..1`. See
+  *Clip slices* below.
+- **`anchored`** — `true` for the scenes whose overlay sits on painted artwork:
+  the medallion, the RSVP silk panel and the portrait frame. It suppresses the
+  entrance rise. This matters more than it looks: that 1.6vh offset alone was
+  displacing the medallion and the RSVP panel while they faded in — already
+  inside the window where they accept a tap.
 - **`copy`** — `[fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd]` in local
   `0..1`. Individual elements can carry their own `data-fade="i0,i1,o0,o1"` to
   hand off within one scene (scene 1 uses this).
@@ -87,57 +86,48 @@ The payload is `{ name, attending, message, submittedAt }`.
   A ramp that begins at `0` is still *invisible* at `0` — that's why the opening
   scene's ramps start slightly negative.
 
-### The scratch foil
+### Reveal, not scratch
 
-The foil is painted from the page's own gold ramp read off the CSS custom
-properties at paint time — `--gold-deep` → `--gold` → `--gold-soft` →
-`--gold-bright`, with `--cream` as the sheen raking across the middle — rather
-than one-off hex values, so retuning the palette retunes the foil. The reveal
-bloom, the petal sparks and the date's glow are on the same tokens.
+The bloom, the petal sparks and the date's glow are painted from the page's own
+gold ramp — `--gold-deep` → `--gold` → `--gold-soft` → `--gold-bright`, with
+`--cream` as the highlight — so retuning the palette retunes them.
 
-The "scratch to reveal" hint is `--ink-soft`, not `--gold-deep`: gold-on-gold
-measured **2.86:1** against the foil actually behind it, under the 3:1 floor for
-large text. `--ink-soft` is the same palette's secondary ink and measures 4.48:1.
+The scratch canvas is gone. It covered ~74% of the screen and had to claim touch
+gestures to detect a rub, which meant a swipe beginning on the medallion could
+not scroll the page — a delightful idea that quietly cost the page the one thing
+it exists to do. A gold button sits in the middle of the disc instead and hands
+over to the date on tap; the bloom and the petal burst are unchanged.
 
-### Parallax layers
+### No parallax
 
-Individual elements opt into their own depth with `data-par` (and optionally
-`data-par-scale`); the engine writes the result to a `--par` custom property each
-frame, and the element folds that into whatever transform it already uses for its
-own positioning, so the two never clobber each other. The portrait uses this: the
-photograph and the names below it travel at different rates against the static
-wreath, the names further because they read as nearer.
+The overlays used to drift against the film at their own rate. It is off
+everywhere now (`parallax: 0`, no `data-par`): with the scenes lengthened, the
+drift read as the copy sliding rather than as depth, and it was the first thing
+blamed whenever the page felt unsteady.
 
-Two things that are easy to get wrong here:
+### Clip slices, not stills
 
-- **`data-par` is a percentage of the PICTURE's height, not the viewport's.**
-  These layers sit on painted artwork, and on a tall desktop window the stage is
-  capped at 1180px while the viewport keeps growing — a `vh`-based drift then
-  travels further across the picture than intended and slides the photograph into
-  the wreath's lower flowers. Resolved to px against `--vh`, phone and tall
-  desktop measure identically.
-- **The portrait scales about its bottom edge** (`transform-origin: 50% 100%`).
-  That edge is the binding constraint against the flowers; letting the scale
-  breathe upward into the roomier top margin keeps it clear at every scroll
-  position.
+A scene can own a **slice** of its clip via `from`/`to`, and two do: the couple
+play clip 2 to 72% and the photograph carries it from there; blessings play clip
+8 to 70% and the closing card carries the rest.
 
-### A scene with no clip
+This replaced two scenes that held a single frozen frame. Freezing was the
+"scroll pauses" everyone felt — the page kept scrolling but the picture stopped
+dead, which reads as the site hanging. A slice keeps the camera drifting under
+the overlay, and consecutive slices of the same sequence are seamless by
+construction: it is the same clip, still running. Verified 40→40 and 39→39 at the
+two joins.
 
-Sections 3 and 10 set `clip: null`. `loadClip()` skips those entirely, so nothing is
-fetched and the poster carries the scene — and because that poster is the frame
-the previous clip ends on, the join is invisible without a second copy of the
-video. Use the same trick for any further closing panels: extract the last frame,
-point `poster` at it, leave `clip` null. It costs one JPEG instead of a second
-copy of a video, and because clip 3 was itself chained from clip 2's last frame,
-dropping a still scene in between leaves the flight continuous on both sides.
+It also means the film now ends *with* the invitation: the wreath finishes
+drawing itself across the final scene, so the closing card and the last frame
+arrive together.
 
 ### Swapping the photograph
 
 `assets/img/couple.jpg` (760×1188). Replace it and keep a portrait aspect.
 
 `.portrait` is arch-topped, 47% of the picture width, centred on `50.5% / 42.2%`.
-The wreath clip 2 rests on has an opening of `24%–78%` across and `15.6%–64.6%`
-down; the frame lands at `27%–74%` and `21.5%–62.9%`, deliberately **inset
+The wreath has an opening of `24%–78%` across and `15.6%–64.6%` down; the frame lands at `27%–74%` and `21.5%–62.9%`, deliberately **inset
 inside** that rather than filling it: the opening is an oval, so a rectangle
 spanning its full height pushes its top corners into the flowers. It sits low in
 the opening on purpose (5.9% of air above, 1.7% below) — the lower flowers are
@@ -150,6 +140,28 @@ positioned independently of the frame: they sit at `80%` of the picture height,
 clear of the wreath, which bottoms out around `76%`. Playfair Display italic —
 the same display face as the hashtag — capped by `8.2vw` as well as viewport
 height so `white-space: nowrap` can't overflow a narrow, tall phone.
+
+### The phone, on a wide screen
+
+A 9:16 film leaves most of a desktop empty, so the stage sits inside a **device
+shell** above 861px — titanium rail, black glass bezel, Dynamic Island with its
+camera dot, side buttons, and a soft reflection pooling underneath. Above 1180px
+the space beside it becomes **the room**: the invitation's details set as print on
+the left, an oversized monogram watermark behind, and on the right the hashtag
+plus a live readout of which scene you are in.
+
+Two things to know if you touch this:
+
+- **`.device` is `display: contents` below 861px**, so the shell disappears from
+  layout entirely and the stage is a direct child of the centring wrapper again —
+  every measurement in `scroll-film.js` is unchanged. But `display: contents`
+  *promotes the shell's children into that grid*, so the buttons and the island
+  would become grid items in their own right and squeeze the stage into a strip
+  at the bottom. They are `display: none` until the shell exists.
+- **The stage's height comes from `--vph`, not `100%`.** The shell shrink-wraps
+  its content, so a percentage inside it has no definite parent to resolve
+  against and the whole thing collapses to zero. `measure()` publishes the
+  viewport height it already computes; the stage reads that.
 
 ### Type
 
@@ -164,23 +176,6 @@ and weight, with the `#` in gold. It is deliberately *not* gradient-filled text 
 pale pink; solid ink with a plain halo is both richer and predictable everywhere.
 
 ---
-
-### The opening flight
-
-On a cold load at the top, the page flies the first scene itself over ~8.5s so
-the monogram draws without the visitor doing anything, then stops and hands over.
-Three things it has to get right, all in `autoIntro()`:
-
-- **It waits for the clip.** Starting before the decoder can answer meant the
-  scroll ran the whole way while the picture was still on frame 0 — the monogram
-  finished drawing several seconds after the camera had already stopped.
-- **It drops the smoothing.** The rAF lerp that makes hand-scrolling feel good
-  puts the picture behind a scripted scroll, so `introActive` sets the follow
-  factor to 1 and the clip tracks as fast as the decoder allows. (Seek coalescing
-  still protects it.)
-- **It never fights the visitor.** Any wheel, touchmove or keypress aborts it
-  instantly, and it only runs from a cold start at the very top — a reload
-  midway, or `prefers-reduced-motion`, skips it entirely.
 
 ## The film is frames, not video
 
@@ -379,29 +374,19 @@ Measured off the frames themselves:
 
 ---
 
-## Re-encoding the clips
+## Regenerating the film
 
-`tools/encode.sh` regenerates everything in `assets/video` and `assets/poster`
-from the source clips:
+`tools/frames.sh` re-extracts every clip as a 1080x1920 WebP sequence:
 
 ```bash
-./tools/encode.sh ../flowers_cloud_bird/clips
+./tools/frames.sh ../flowers_cloud_bird/clips
+N=72 ./tools/frames.sh ../flowers_cloud_bird/clips   # finer, proportionally more bytes
 ```
 
-**Both tiers are native 1080×1920 — full HD on every device.** The source clips
-run about 5–7 Mbps, so there is nothing above `crf ~19` left to recover; the two
-tiers differ in bitrate and GOP, not resolution. Seek cost is dominated by how
-many frames sit between the target and the previous keyframe, so the phone tier
-uses a tighter GOP (`-g 4`) — while all-intra would balloon an 8s clip to ~25 MB
-for no visible gain, since Blob playback already guarantees seekability.
-
-**Current weight: 68 MB desktop, 53 MB mobile** across all eight clips. Nothing
-loads up front — the engine fetches only what is within ~1.5 screens of the
-viewport, so landing on the page costs one clip (~7 MB). If you'd rather trade
-sharpness for data on phones, change the second ffmpeg line in `tools/encode.sh`
-to `scale=720:-2` with `-crf 24`: that halves the mobile tier to ~26 MB.
-
----
+It picks `N` frames spanning each clip's true first and last frame, so the chain
+stays seam-exact whatever `N` you choose. Set the same number as `frameCount` in
+`invite.config.js`. At the default 56 the whole film is **26MB** across 448
+frames — less than the mobile video tier it replaced.
 
 ## Music
 

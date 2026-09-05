@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@1,500;1,600;1,700&family=Jost:wght@300;400;500&display=swap" onload="this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@1,500;1,600;1,700&family=Jost:wght@300;400;500&display=swap"></noscript>
-<link rel="stylesheet" href="assets/css/site.css?v=36">
+<link rel="stylesheet" href="assets/css/site.css?v=42">
 
 <link rel="preload" as="image" href="assets/frames/c1/001.webp" fetchpriority="high">
 </head>
@@ -50,12 +50,22 @@
 
 <!-- The film. Scene layers are injected by the engine; copy is authored here. -->
 <div class="stagewrap">
-  <div class="stage">
+  <!-- The phone shell only exists on a wide screen; below 861px it is
+       `display: contents` and the stage is the whole viewport again. -->
+  <div class="device">
+    <span class="device__btn device__btn--silent" aria-hidden="true"></span>
+    <span class="device__btn device__btn--up" aria-hidden="true"></span>
+    <span class="device__btn device__btn--down" aria-hidden="true"></span>
+    <span class="device__btn device__btn--power" aria-hidden="true"></span>
+    <div class="stage">
 
     <div class="copylayer">
 
       <!-- 1 · opening ------------------------------------------------------ -->
-      <section class="copy" data-place="center" aria-label="Welcome">
+      <section class="copy" data-place="center" data-scrim="own" aria-label="Welcome">
+        <!-- Leaves well before the monogram completes at 70%, so the logo is
+             never seen through it. -->
+        <span class="copy__scrim" data-fade="-0.05,-0.01,0.22,0.40" aria-hidden="true"></span>
         <div>
           <!-- greets on landing, centred so the invitation to scroll is the
                first thing anyone reads -->
@@ -70,7 +80,7 @@
         </div>
         <!-- the monogram completes near the end of clip 1; the hashtag lands
              beneath it rather than over it -->
-        <p class="hashtag open__tag" data-fade="0.74,0.88,1,1"><i>#</i>ShubhMilan</p>
+        <p class="hashtag open__tag" data-fade="0.62,0.74,1,1"><i>#</i>ShubhMilan</p>
       </section>
 
       <!-- 2 · the couple --------------------------------------------------- -->
@@ -88,11 +98,11 @@
 
       <!-- 3 · the portrait --------------------------------------------------- -->
       <section class="copy" data-place="fill" aria-label="The couple">
-        <figure class="portrait" data-par="2.9" data-par-scale="0.05">
+        <figure class="portrait">
           <img src="assets/img/couple.jpg" width="760" height="1188" loading="lazy" decoding="async"
                alt="Dr. Shubhanu Tayal and Dr. Shubhangi Bansal">
         </figure>
-        <p class="portrait__names" data-par="5.5">Shubhanu <span>&amp;</span> Shubhangi</p>
+        <p class="portrait__names">Shubhanu <span>&amp;</span> Shubhangi</p>
       </section>
 
       <!-- 4 · families ----------------------------------------------------- -->
@@ -113,25 +123,21 @@
         </div>
       </section>
 
-      <!-- 5 · save the date (scratch) -------------------------------------- -->
+      <!-- 5 · save the date ------------------------------------------------ -->
       <section class="copy" data-place="fill" aria-label="Save the date">
-        <div class="scratch">
-          <span class="scratch__glow" aria-hidden="true"></span>
-          <div class="scratch__prize">
-            <p class="scratch__label">Save the Date</p>
-            <p class="scratch__date"><b>21</b> September<br>2026</p>
-            <p class="scratch__day">Monday</p>
+        <div class="reveal">
+          <span class="reveal__glow" aria-hidden="true"></span>
+          <div class="reveal__prize">
+            <p class="reveal__label">Save the Date</p>
+            <p class="reveal__date"><b>21</b> September<br>2026</p>
+            <p class="reveal__day">Monday</p>
           </div>
-          <canvas class="scratch__foil" role="img"
-                  aria-label="Rose-gold foil covering the date — scratch it, or use the reveal button below"></canvas>
-          <p class="scratch__hint">Scratch to reveal</p>
-          <span class="scratch__burst" aria-hidden="true">
+          <button class="reveal__btn" type="button">Reveal the date</button>
+          <span class="reveal__burst" aria-hidden="true">
             <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
             <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
           </span>
         </div>
-        <!-- sits clear of the medallion, in the open cloud below it -->
-        <button class="scratch__skip" type="button">Reveal the date</button>
       </section>
 
       <!-- 6 · the ceremony ------------------------------------------------- -->
@@ -229,8 +235,31 @@
       </section>
 
     </div><!-- /copylayer -->
-  </div><!-- /stage -->
+      <span class="device__island" aria-hidden="true"></span>
+    </div><!-- /stage -->
+  </div><!-- /device -->
 </div><!-- /stagewrap -->
+
+<!-- Everything beside the phone. Desktop only; the film is already the whole
+     screen on a device. -->
+<div class="room" aria-hidden="false">
+  <img class="room__watermark" src="assets/img/monogram.png" alt="" aria-hidden="true">
+  <div class="room__side room__side--left">
+    <p class="room__eyebrow">You are invited</p>
+    <h1 class="room__names">Dr. Shubhanu<span>&amp;</span>Dr. Shubhangi</h1>
+    <span class="room__rule" aria-hidden="true"></span>
+    <p class="room__meta">
+      <b>21 September 2026</b>
+      The Mansion Banquet<br>Meerut, Uttar Pradesh
+    </p>
+  </div>
+  <div class="room__side room__side--right">
+    <p class="room__tag"><i>#</i>ShubhMilan</p>
+    <p class="room__now"><b class="room__count">01</b><span class="room__of">/ 10</span></p>
+    <p class="room__scene">Welcome</p>
+    <p class="room__hint">Scroll to move the film</p>
+  </div>
+</div>
 
 <!-- chrome -->
 <button class="music" type="button" aria-pressed="false" aria-label="Play music" title="Kudmayi">
@@ -251,9 +280,9 @@
 <!-- the scroll track: the only element with real height -->
 <div class="track" aria-hidden="true"></div>
 
-<script src="assets/js/invite.config.js?v=36"></script>
-<script src="assets/js/film.js?v=36"></script>
-<script src="assets/js/scroll-film.js?v=36"></script>
-<script src="assets/js/interactions.js?v=36"></script>
+<script src="assets/js/invite.config.js?v=42"></script>
+<script src="assets/js/film.js?v=42"></script>
+<script src="assets/js/scroll-film.js?v=42"></script>
+<script src="assets/js/interactions.js?v=42"></script>
 </body>
 </html>

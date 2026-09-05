@@ -8,7 +8,7 @@
    for how frames are fetched, decoded in a window, and composited. This file
    owns the mapping from scroll position to frame, the copy, and the chrome.
 
-   The pacing knobs that shape that mapping (`settle`, `linger`, `parallax`,
+   The pacing knobs that shape that mapping (`settle`, `linger`, `from`/`to`,
    `anchored`) are documented in invite.config.js.
    ========================================================================== */
 
@@ -40,9 +40,11 @@
   const track = $('.track');
   const rail = $('.rail');
   const progress = $('.progress__fill');
+  const roomCount = $('.room__count');
+  const roomScene = $('.room__scene');
+  const roomOf = $('.room__of');
+  if (roomOf) roomOf.textContent = '/ ' + String(SECTIONS.length).padStart(2, '0');
 
-  /* Build one scene layer per section, each holding a poster and (once loaded)
-     its video. They are stacked; opacity picks the active one. */
   /* One canvas for the whole film. Ten stacked full-screen layers was work the
      compositor repeated every frame; a crossfade here is two drawImage calls. */
   const canvas = document.createElement('canvas');
@@ -74,26 +76,6 @@
   const fades = copies.map((c) =>
     Array.from(c.querySelectorAll('[data-fade]')).map((el) => ({
       el, r: el.dataset.fade.split(',').map(Number),
-    }))
-  );
-
-  /* Depth. The film is a camera move and must never be transformed — doing so
-     would break the seams and pull the video-space anchors off their artwork —
-     so the sense of depth comes from the overlays travelling at their own rate
-     against it. Each scene drifts by its `parallax` (viewport-heights across the
-     whole scene); elements carrying data-par get their own layer on top, written
-     to a --par custom property so it composes with whatever transform the element
-     already uses for its own positioning.
-
-     data-par is a percentage of the PICTURE's height, not the viewport's, and is
-     resolved to px here. Those layers sit on painted artwork, and on a tall
-     desktop window the stage is capped at 1180px while the viewport is taller —
-     a vh-based drift would then travel further across the picture than intended
-     and slide the photograph into the wreath's lower flowers. */
-  const layers = copies.map((c) =>
-    Array.from(c.querySelectorAll('[data-par]')).map((el) => ({
-      el, d: parseFloat(el.dataset.par) || 0,
-      scale: parseFloat(el.dataset.parScale) || 0,
     }))
   );
 
@@ -132,7 +114,7 @@
      flick used to jump the index by dozens of frames at once and read as a cut —
      the camera appearing somewhere new rather than travelling there.
      `viewY` chases the real scroll instead of matching it, and every scene
-     derives from `viewY`: frame, opacity, copy fade, parallax. A flick becomes a
+     derives from `viewY`: frame, opacity and copy fade alike. A flick becomes a
      fast fly-through of the actual film instead of a teleport.
 
      The per-frame step is capped so the film cannot advance faster than the eye
@@ -158,11 +140,10 @@
   /* The clips are 1080×1920 and the scenes are `object-fit: cover`, so on a tall
      phone the film is cropped at the sides and a percentage of the STAGE is no
      longer the same percentage of the PICTURE. Anything that has to sit exactly
-     on painted artwork — the scratch medallion, the RSVP silk panel — is
+     on painted artwork — the medallion, the RSVP silk panel, the portrait — is
      positioned against these variables instead, which describe where the video's
      own 0–100% actually lands inside the stage. On desktop the stage is already
      9:16, so the offsets are zero and this reduces to plain percentages. */
-  let picH = 0;    // the film's displayed height in px — the unit for data-par
   function mapVideoSpace() {
     const sw = stage.clientWidth, sh = stage.clientHeight;
     if (!sw || !sh) return;
@@ -173,7 +154,6 @@
     s.setProperty('--vy', ((sh - dh) / 2) + 'px');
     s.setProperty('--vw', dw + 'px');
     s.setProperty('--vh', dh + 'px');
-    picH = dh;
     renderer.resize(sw, sh);
   }
 
@@ -195,6 +175,9 @@
     const h = viewportH();
     appliedH = h;
     stagewrap.style.height = h + 'px';
+    // Also published as a variable: the phone shell shrink-wraps its content, so
+    // a `height: 100%` inside it has no definite parent to resolve against.
+    document.documentElement.style.setProperty('--vph', h + 'px');
     mapVideoSpace();
     read();
   }
@@ -234,11 +217,16 @@
       else if (y > sc.end) outside = y - sc.end;
       sc.op = smooth(1 - outside / fade);
       sc.visible = sc.op > 0.002;
-      // `still` scenes rest on their sequence's last frame — that is how the
-      // portrait and the closing card sit on the frame the previous clip ended
-      // on without a second copy of anything.
-      const t = sc.cfg.still ? 1 : sc.target;
-      sc.frameIndex = Math.round(clamp(t) * (sc.seq.count - 1));
+      /* A scene can own a SLICE of its clip rather than the whole thing, via
+         `from`/`to`. That is how the photograph and the closing card get their
+         own screen without the film stopping dead underneath them: the previous
+         scene plays its clip up to the cut, this one carries on from exactly
+         there. Consecutive slices of the same sequence are seamless by
+         construction — it is the same clip, still running. */
+      const f0 = sc.cfg.from != null ? sc.cfg.from : 0;
+      const f1 = sc.cfg.to != null ? sc.cfg.to : 1;
+      const t = f0 + (f1 - f0) * clamp(sc.target);
+      sc.frameIndex = Math.round(t * (sc.seq.count - 1));
 
       // ---- copy ----
       const c = copies[i];
@@ -247,24 +235,14 @@
       if (o1 > o0) cop = Math.min(cop, smooth(1 - (local - o0) / (o1 - o0)));
       if (y < sc.start || y > sc.end) cop = Math.min(cop, sc.op);
       c.style.opacity = cop;
-      // Entrance rise plus the scene's own drift, centred on mid-scene so the
-      // copy travels through the frame rather than starting or ending displaced.
-      // An anchored scene gets neither: its overlay sits on painted artwork, and
-      // even the entrance offset would have it scratching or typing against a
-      // target 1.6vh away from where it looks.
-      if (reduce || sc.cfg.anchored) {
-        c.style.transform = 'none';
-      } else {
-        const par = (sc.cfg.parallax || 0) * (0.5 - local);
-        c.style.transform = 'translate3d(0,' + ((1 - cop) * 1.6 + par).toFixed(3) + 'vh,0)';
-      }
+      // A small entrance rise, and nothing else — the overlays no longer drift
+      // against the film. An anchored scene gets not even that: its overlay sits
+      // on painted artwork, and 1.6vh of offset is enough to have someone tapping
+      // a target that isn't where it looks.
+      c.style.transform = (reduce || sc.cfg.anchored)
+        ? 'none'
+        : 'translate3d(0,' + ((1 - cop) * 1.6).toFixed(3) + 'vh,0)';
 
-      if (!reduce) {
-        for (const L of layers[i]) {
-          L.el.style.setProperty('--par', (L.d / 100 * picH * (0.5 - local)).toFixed(2) + 'px');
-          if (L.scale) L.el.style.setProperty('--par-scale', (1 + L.scale * (0.5 - local)).toFixed(4));
-        }
-      }
       // Interactive scenes need a generous hit window, not a razor-thin peak.
       c.style.pointerEvents = cop > 0.55 ? 'auto' : 'none';
       const cvis = cop > 0.002;
@@ -284,6 +262,9 @@
       activeIndex = ci;
       dots.forEach((d, k) => d.classList.toggle('is-active', k === ci));
       document.body.dataset.scene = SECTIONS[ci].id;
+      // the readout beside the phone, on a wide screen
+      if (roomCount) roomCount.textContent = String(ci + 1).padStart(2, '0');
+      if (roomScene) roomScene.textContent = SECTIONS[ci].label;
     }
 
     progress.style.transform = 'scaleY(' + clamp(y / (total * vh)) + ')';

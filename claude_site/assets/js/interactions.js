@@ -1,6 +1,6 @@
 /* ============================================================================
    interactions.js — the parts of the invitation the visitor touches
-     · scratch-to-reveal medallion (scene 4)
+     · reveal-the-date medallion (scene 5)
      · live countdown + Add to Calendar (scene 5)
      · Open Map (scene 6)
      · RSVP form (scene 7)
@@ -28,107 +28,22 @@
     lastTap = now;
   }, { passive: false });
 
-  /* ---------------------------------------------------------------- scratch */
-  // A canvas of gold foil sits exactly over the medallion's blank centre. The
-  // visitor rubs it away with destination-out arcs; once enough is cleared we
-  // dissolve the remainder so nobody has to scrub every last pixel.
-  (function scratchCard() {
-    const wrap = $('.scratch');
-    const canvas = $('.scratch__foil');
-    if (!wrap || !canvas) return;
+  /* ----------------------------------------------------------------- date */
+  /* A button in the middle of the medallion, not a scratch surface. The canvas
+     covered ~74% of the screen and had to claim touch gestures to detect a rub,
+     which meant a swipe that began on the medallion could not scroll the page —
+     a delightful idea that quietly cost the thing the page exists to do. */
+  (function revealDate() {
+    const wrap = $('.reveal');
+    if (!wrap) return;
+    const btn = wrap.querySelector('.reveal__btn');
+    let done = false;
 
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const skip = document.querySelector('.scratch__skip');
-    let sized = false, drawing = false, done = false, since = 0, last = null;
-
-    function paintFoil() {
-      const r = wrap.getBoundingClientRect();
-      if (r.width < 4) return;
-      const dpr = Math.min(devicePixelRatio || 1, 2);
-      canvas.width = Math.round(r.width * dpr);
-      canvas.height = Math.round(r.height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      // The foil is struck from the page's own gold ramp rather than one-off
-      // hex values, so it stays in step if the palette is ever retuned:
-      // --gold-deep -> --gold -> --gold-soft -> --gold-bright, with --cream as
-      // the sheen raking across the middle.
-      const root = getComputedStyle(document.documentElement);
-      const tok = (n, fb) => (root.getPropertyValue(n).trim() || fb);
-      const DEEP   = tok('--gold-deep',   '#8a6830');
-      const GOLD   = tok('--gold',        '#b8934c');
-      const SOFT   = tok('--gold-soft',   '#d9bd85');
-      const BRIGHT = tok('--gold-bright', '#e7cf9a');
-      const CREAM  = tok('--cream',       '#fffaf2');
-
-      const g = ctx.createLinearGradient(0, 0, r.width, r.height);
-      g.addColorStop(0.00, DEEP);
-      g.addColorStop(0.13, GOLD);
-      g.addColorStop(0.28, SOFT);
-      g.addColorStop(0.41, BRIGHT);
-      g.addColorStop(0.48, CREAM);     // sheen
-      g.addColorStop(0.56, BRIGHT);
-      g.addColorStop(0.68, SOFT);
-      g.addColorStop(0.80, GOLD);
-      g.addColorStop(0.92, SOFT);
-      g.addColorStop(1.00, DEEP);
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, r.width, r.height);
-
-      // A soft radial lift so the disc reads as domed rather than printed flat.
-      const rgba = (hex, a) => {
-        const h = hex.replace('#', '');
-        const n = parseInt(h.length === 3 ? h.replace(/./g, (c) => c + c) : h, 16);
-        return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
-      };
-      const rg = ctx.createRadialGradient(r.width * 0.4, r.height * 0.34, 0,
-                                          r.width * 0.5, r.height * 0.5, r.width * 0.72);
-      rg.addColorStop(0, rgba(CREAM, 0.34));
-      rg.addColorStop(1, rgba(DEEP, 0.30));
-      ctx.fillStyle = rg;
-      ctx.fillRect(0, 0, r.width, r.height);
-
-      // A little grain so the foil doesn't read as flat vector fill.
-      ctx.globalAlpha = 0.06;
-      for (let i = 0; i < 900; i++) {
-        ctx.fillStyle = i % 2 ? CREAM : DEEP;
-        ctx.fillRect(Math.random() * r.width, Math.random() * r.height, 1.6, 1.6);
-      }
-      ctx.globalAlpha = 1;
-      sized = true;
-    }
-
-    function pt(e) {
-      const r = canvas.getBoundingClientRect();
-      const p = e.touches ? e.touches[0] : e;
-      return { x: p.clientX - r.left, y: p.clientY - r.top };
-    }
-
-    function scratch(a, b) {
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.lineWidth = Math.max(28, canvas.width / 12);
-      ctx.lineCap = ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-      ctx.globalCompositeOperation = 'source-over';
-    }
-
-    function cleared() {
-      const step = 12;
-      const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      let clear = 0, seen = 0;
-      for (let i = 3; i < d.length; i += 4 * step) { seen++; if (d[i] < 24) clear++; }
-      return seen ? clear / seen : 0;
-    }
-
-    function finish() {
+    function open() {
       if (done) return;
       done = true;
-      // Fling the petal sparks outward on their own angles before the class
-      // that runs the animation lands.
-      const burst = wrap.querySelector('.scratch__burst');
+      // fling the petal sparks outward on their own angles first
+      const burst = wrap.querySelector('.reveal__burst');
       if (burst) {
         const sparks = burst.children, n = sparks.length;
         for (let i = 0; i < n; i++) {
@@ -142,61 +57,9 @@
         }
       }
       wrap.classList.add('is-revealed');
-      if (skip) skip.classList.add('is-done');
     }
 
-    /* The foil covers most of the screen, so it cannot simply claim every
-       gesture that starts on it — that is what left the page unable to scroll.
-       A drag stays undecided until it has moved enough to show intent: mostly
-       sideways is a scratch, mostly vertical is the visitor trying to scroll, and
-       we let it go. `touch-action: pan-y` means the browser is already scrolling
-       in that case, and sends us a pointercancel. */
-    const INTENT = 8;            // px of travel before deciding
-    let origin = null;
-
-    function start(e) {
-      if (done) return;
-      if (!sized) paintFoil();
-      origin = pt(e);
-      last = origin;
-      drawing = 'pending';
-      // no preventDefault yet — the gesture might belong to the page
-    }
-    function move(e) {
-      if (!drawing || done) return;
-      const p = pt(e);
-
-      if (drawing === 'pending') {
-        const dx = Math.abs(p.x - origin.x), dy = Math.abs(p.y - origin.y);
-        if (dx < INTENT && dy < INTENT) { last = p; return; }
-        if (dy > dx) { drawing = false; return; }      // theirs, not ours
-        drawing = true;
-        wrap.classList.add('is-touched');
-      }
-
-      scratch(last, p);
-      last = p;
-      if (++since > 8) { since = 0; if (cleared() > 0.5) finish(); }
-      e.preventDefault();
-    }
-    function end() {
-      const wasDrawing = drawing === true;
-      drawing = false; origin = null;
-      if (wasDrawing && !done && cleared() > 0.42) finish();
-    }
-
-    canvas.addEventListener('pointerdown', start);
-    addEventListener('pointermove', move, { passive: false });
-    addEventListener('pointerup', end);
-    addEventListener('pointercancel', end);
-
-    // Keyboard / assistive path — nobody should be locked out by a rub gesture.
-    if (skip) skip.addEventListener('click', finish);
-
-    new ResizeObserver(() => { if (!done) { sized = false; paintFoil(); } }).observe(wrap);
-    paintFoil();
-    // The wrap only gets real dimensions once the stage lays out.
-    addEventListener('load', () => { if (!done) { sized = false; paintFoil(); } });
+    if (btn) btn.addEventListener('click', open);
   })();
 
   /* -------------------------------------------------------------- countdown */
