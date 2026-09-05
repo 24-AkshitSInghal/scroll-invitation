@@ -1,5 +1,13 @@
 #!/bin/bash
-# Extract each clip as a 1080x1920 WebP frame sequence.
+# Extract each clip as a WebP frame sequence.
+#
+#   ./tools/frames.sh [clips-dir]            -> 1080x1920 into assets/frames
+#   W=720 ./tools/frames.sh [clips-dir]      -> 720x1280  into assets/frames-720
+#
+# Two tiers because decode cost scales with SOURCE pixels, not with the size you
+# draw at: createImageBitmap has to decode the whole 1080 image before it can
+# resize it down. A budget phone drawing into a 720-wide canvas was paying 2.25x
+# for detail it then threw away.
 #
 # Why frames instead of video: scrubbing means seeking to arbitrary times, and on
 # iOS that is both slow and unreliable — decoders are a limited resource and a
@@ -10,7 +18,10 @@
 # frames, so the chain stays seam-exact.
 set -e
 SRC="${1:-../flowers_cloud_bird/clips}"
-OUT="$(cd "$(dirname "$0")/.." && pwd)/assets/frames"
+W=${W:-1080}
+H=$(( W * 16 / 9 ))
+SUFFIX=""; [ "$W" != "1080" ] && SUFFIX="-$W"
+OUT="$(cd "$(dirname "$0")/.." && pwd)/assets/frames$SUFFIX"
 N=${N:-56}
 mkdir -p "$OUT"
 for i in 1 2 3 4 5 6 7 8; do
@@ -22,7 +33,7 @@ idx=[round(k*(t-1)/(n-1)) for k in range(n)]
 print('+'.join('eq(n\\\\,%d)'%v for v in sorted(set(idx))))
 ")
   ffmpeg -y -loglevel error -i "$SRC/clip$i.mp4" \
-    -vf "select='$expr',scale=1080:1920:flags=lanczos" -fps_mode passthrough "$d/%03d.png"
+    -vf "select='$expr',scale=$W:$H:flags=lanczos" -fps_mode passthrough "$d/%03d.png"
   for f in "$d"/*.png; do
     cwebp -quiet -q 70 -m 6 "$f" -o "${f%.png}.webp"; rm "$f"
   done

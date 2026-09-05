@@ -1,7 +1,7 @@
 {
   "headers": [
     {
-      "source": "/assets/(frames|audio|img)/(.*)",
+      "source": "/assets/(frames|frames-720|audio|img)/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

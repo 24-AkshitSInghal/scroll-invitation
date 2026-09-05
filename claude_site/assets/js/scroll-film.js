@@ -53,12 +53,38 @@
   stage.insertBefore(canvas, stage.firstChild);
   const renderer = new Film.Renderer(canvas);
 
-  // One Sequence per distinct clip — scenes that rest on another clip's final
-  // frame share its sequence rather than shipping a second copy.
+  /* Which frame tier to download. Decode cost scales with the SOURCE pixels, not
+     with the size we draw at: createImageBitmap has to decode the whole 1080
+     image before it can resize it down, so a budget phone drawing into a
+     720-wide canvas was paying 2.25x for detail it then threw away. It also
+     halves the wait at the gate.
+
+     Decided once, before anything is fetched. `?q=lite` / `?q=hi` overrides it,
+     which is the only honest way to compare the two on a real device. */
+  const LITE = (function () {
+    const q = new URLSearchParams(location.search).get('q');
+    if (q === 'lite') return true;
+    if (q === 'hi') return false;
+    // Every touch device takes the light tier. The canvas is capped at 2x DPR,
+    // so even the widest phone draws into ~860px — from a 720 source that is a
+    // 1.19x upscale on a screen held at arm's length, which is invisible, in
+    // exchange for half the download and 2.25x less decode per frame. Desktop,
+    // where none of this ever struggled and the picture is studied up close,
+    // keeps the full 1080.
+    if (coarse) return true;
+    const c = navigator.connection || {};
+    if (c.saveData) return true;
+    if (/2g/.test(c.effectiveType || '')) return true;
+    if ((navigator.deviceMemory || 8) <= 4) return true;   // Chrome only; absent = assume capable
+    return false;
+  })();
+
+  // One Sequence per distinct clip — scenes that share a clip share its frames.
   const seqs = {};
   function seqFor(dir) {
-    if (!seqs[dir]) seqs[dir] = new Film.Sequence(dir, cfg.frameCount || 56);
-    return seqs[dir];
+    const d = LITE ? dir.replace('/frames/', '/frames-720/') : dir;
+    if (!seqs[d]) seqs[d] = new Film.Sequence(d, cfg.frameCount || 56);
+    return seqs[d];
   }
 
   const scenes = SECTIONS.map((s, i) => ({
@@ -234,27 +260,42 @@
       let cop = smooth((local - i0) / (i1 - i0));
       if (o1 > o0) cop = Math.min(cop, smooth(1 - (local - o0) / (o1 - o0)));
       if (y < sc.start || y > sc.end) cop = Math.min(cop, sc.op);
-      c.style.opacity = cop;
+      /* Every write here is guarded. This loop runs on every frame the playhead
+         is moving, across ten sections; writing opacity, transform and
+         pointer-events unconditionally was ~40 style mutations a frame, and on a
+         budget phone that recalc competes with the decode for the same main
+         thread. Rounding opacity to 3dp also stops imperceptible changes from
+         invalidating style at all. */
+      const copR = Math.round(cop * 1000) / 1000;
+      if (copR !== c._op) { c.style.opacity = copR; c._op = copR; }
+
       // A small entrance rise, and nothing else — the overlays no longer drift
       // against the film. An anchored scene gets not even that: its overlay sits
       // on painted artwork, and 1.6vh of offset is enough to have someone tapping
       // a target that isn't where it looks.
-      c.style.transform = (reduce || sc.cfg.anchored)
+      const tf = (reduce || sc.cfg.anchored)
         ? 'none'
-        : 'translate3d(0,' + ((1 - cop) * 1.6).toFixed(3) + 'vh,0)';
+        : 'translate3d(0,' + ((1 - copR) * 1.6).toFixed(2) + 'vh,0)';
+      if (tf !== c._tf) { c.style.transform = tf; c._tf = tf; }
 
       // Interactive scenes need a generous hit window, not a razor-thin peak.
-      c.style.pointerEvents = cop > 0.55 ? 'auto' : 'none';
-      const cvis = cop > 0.002;
+      const live = copR > 0.55;
+      if (live !== c._live) {
+        c.style.pointerEvents = live ? 'auto' : 'none';
+        c.classList.toggle('is-live', live);
+        c._live = live;
+      }
+      const cvis = copR > 0.002;
       if (cvis !== c._vis) { c.style.visibility = cvis ? 'visible' : 'hidden'; c._vis = cvis; }
-      c.classList.toggle('is-live', cop > 0.55);
 
       for (const f of fades[i]) {
         const [a0, a1, b0, b1] = f.r;
         let o = smooth((local - a0) / (a1 - a0));
         if (b1 > b0) o = Math.min(o, smooth(1 - (local - b0) / (b1 - b0)));
-        f.el.style.opacity = o;
-        f.el.style.pointerEvents = o > 0.55 ? 'auto' : 'none';
+        o = Math.round(o * 1000) / 1000;
+        if (o !== f._op) { f.el.style.opacity = o; f._op = o; }
+        const fl = o > 0.55;
+        if (fl !== f._live) { f.el.style.pointerEvents = fl ? 'auto' : 'none'; f._live = fl; }
       }
     }
 

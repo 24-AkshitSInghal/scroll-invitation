@@ -141,6 +141,26 @@ clear of the wreath, which bottoms out around `76%`. Playfair Display italic —
 the same display face as the hashtag — capped by `8.2vw` as well as viewport
 height so `white-space: nowrap` can't overflow a narrow, tall phone.
 
+### The scrim, and why the opening opts out
+
+Centred and lower copy sit on a soft cream scrim so text survives the busiest
+frames. It rides the copy's own opacity, which is right everywhere the copy
+arrives and leaves with its scene.
+
+The opening is the exception: its copy is held from the first pixel to the last
+(`copy: [-0.05, -0.01, 1, 1]`), so the scrim never lifted — and it was still
+veiling the film at 70%, exactly where the monogram finishes drawing itself. A
+monogram seen through a white wash just looks dull.
+
+So `data-scrim="own"` disables the pseudo-element and the section supplies a
+`.copy__scrim` with its own `data-fade`, timed to leave with the greeting: full
+at 0, gone by 0.40, **zero by the time the logo lands**. Any other scene that
+holds its copy for a whole scene should do the same.
+
+One trap: the fade driver sets `pointer-events` on everything it animates, and
+this element covers the entire stage — it is pinned `none !important` so it can
+never become a hit target.
+
 ### The phone, on a wide screen
 
 A 9:16 film leaves most of a desktop empty, so the stage sits inside a **device
@@ -374,14 +394,42 @@ Measured off the frames themselves:
 
 ---
 
+### Two frame tiers
+
+`assets/frames` is 1080x1920 (26MB); `assets/frames-720` is 720x1280 (17MB).
+**Every touch device takes the light tier**, desktop takes the full one.
+
+The reason is decode, not download. `createImageBitmap` decodes the *whole*
+source image before it resizes it to the canvas, so the cost scales with source
+pixels — a phone drawing into a 720-wide canvas was paying **2.25x** to produce
+detail it then threw away. The canvas is capped at 2x DPR, so even the widest
+phone draws into ~860px: from a 720 source that is a 1.19x upscale on a screen
+held at arm's length, which is invisible. Desktop, where none of this struggled
+and the picture is studied up close, keeps 1080.
+
+`?q=lite` and `?q=hi` force a tier — the only honest way to compare them on a
+real device. `saveData`, a 2G connection, or `deviceMemory <= 4` also force lite.
+
+### Guarded style writes
+
+The scene loop runs on every frame the playhead moves, across ten sections.
+Writing opacity, transform and pointer-events unconditionally was ~40 style
+mutations a frame, and on a budget phone that recalc competes with the frame
+decode for the same main thread. Every write is now compared first, and opacity
+is rounded to 3dp so imperceptible changes don't invalidate style at all.
+
 ## Regenerating the film
 
 `tools/frames.sh` re-extracts every clip as a 1080x1920 WebP sequence:
 
 ```bash
-./tools/frames.sh ../flowers_cloud_bird/clips
-N=72 ./tools/frames.sh ../flowers_cloud_bird/clips   # finer, proportionally more bytes
+./tools/frames.sh ../flowers_cloud_bird/clips          # 1080 -> assets/frames
+W=720 ./tools/frames.sh ../flowers_cloud_bird/clips    # 720  -> assets/frames-720
+N=72 ./tools/frames.sh ../flowers_cloud_bird/clips     # finer, proportionally more bytes
 ```
+
+Regenerate **both** tiers whenever the clips change, or phones will show a stale
+film.
 
 It picks `N` frames spanning each clip's true first and last frame, so the chain
 stays seam-exact whatever `N` you choose. Set the same number as `frameCount` in
