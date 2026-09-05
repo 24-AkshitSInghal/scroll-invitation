@@ -115,7 +115,6 @@ img { max-width: 100%; display: block; }
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: cover;
-  will-change: transform;
 }
 .scene__video { opacity: 0; transition: opacity .35s linear; }
 .scene.has-clip .scene__video { opacity: 1; }
@@ -322,10 +321,9 @@ img { max-width: 100%; display: block; }
   box-shadow: 0 6px 18px -6px rgba(146,110,44,.55);
 }
 .btn--ghost {
-  background: rgba(255,250,242,.72);
+  background: rgba(255,250,242,.88);
   color: var(--ink);
   box-shadow: inset 0 0 0 1px rgba(184,147,76,.42);
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 .btn:hover  { transform: translateY(-2px); }
 .btn:active { transform: translateY(0); }
@@ -504,13 +502,11 @@ img { max-width: 100%; display: block; }
   overflow-y: auto; overscroll-behavior: contain;
   padding: 6% 6.5%;
   border-radius: 3px;
-  background: linear-gradient(180deg, rgba(255,251,244,.90), rgba(253,246,235,.86));
+  background: linear-gradient(180deg, rgba(255,251,244,.96), rgba(253,246,235,.94));
   box-shadow:
     0 0 0 1px rgba(184,147,76,.30),
     0 1px 0 1px rgba(255,255,255,.5) inset,
     0 18px 40px -20px rgba(90,66,34,.45);
-  backdrop-filter: blur(9px) saturate(1.05);
-  -webkit-backdrop-filter: blur(9px) saturate(1.05);
   text-align: left;
 }
 .rsvp__title {
@@ -642,9 +638,8 @@ img { max-width: 100%; display: block; }
   font-size: clamp(12px, 1.6vh, 15px); letter-spacing: .09em;
   font-variant-numeric: tabular-nums;
   color: var(--ink); text-decoration: none;
-  background: rgba(255,250,242,.74);
+  background: rgba(255,250,242,.9);
   box-shadow: inset 0 0 0 1px rgba(184,147,76,.42);
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   transition: transform .25s var(--ease), box-shadow .25s var(--ease), background .25s;
 }
 /* a small handset, so the numbers read as "call us" without a word of label */
@@ -704,9 +699,8 @@ img { max-width: 100%; display: block; }
   width: 42px; height: 42px; padding: 0;
   display: grid; place-items: center;
   border: 0; border-radius: 50%; cursor: pointer;
-  background: rgba(255,250,242,.78);
+  background: rgba(255,250,242,.92);
   box-shadow: inset 0 0 0 1px rgba(184,147,76,.4), 0 4px 14px -6px rgba(90,66,34,.4);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   color: var(--gold-deep);
   transition: transform .25s var(--ease), background .25s;
 }
@@ -759,6 +753,19 @@ img { max-width: 100%; display: block; }
   animation: sweep 1.5s var(--ease) infinite;
 }
 @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+/* The glass is restored only where there's a pointer to hover with. A phone
+   scrubbing 720p video cannot also afford a full-screen backdrop readback. */
+@media (hover: hover) and (pointer: fine) {
+  .btn--ghost,
+  .hosts__calls a { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .music { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .rsvp {
+    backdrop-filter: blur(9px) saturate(1.05);
+    -webkit-backdrop-filter: blur(9px) saturate(1.05);
+    background: linear-gradient(180deg, rgba(255,251,244,.90), rgba(253,246,235,.86));
+  }
+}
 
 /* -- accessibility -------------------------------------------------------- */
 .sr-only {

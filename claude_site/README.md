@@ -182,6 +182,55 @@ Three things it has to get right, all in `autoIntro()`:
   instantly, and it only runs from a cold start at the very top — a reload
   midway, or `prefers-reduced-motion`, skips it entirely.
 
+## Performance on a real phone
+
+The first build was tested on an iPhone 15 over Vercel and scrubbed badly: text
+arriving before the film, clips freezing, frames skipped — and past the opening
+scene, the clips didn't run at all, only the parallax. Everything below is a fix
+for something that was actually observed, not a precaution.
+
+**Only the first clip played.** Every loaded clip stayed in the DOM, so ten
+1080-tall decoders were alive at once. A phone has nowhere near that many, so
+later clips never decoded, never fired `seeked`, never got their `has-clip`
+class, and sat on their poster for ever — a still image that parallaxed. Two
+fixes: keep a **window of at most three live decoders** around the viewer and
+tear the rest down (`releaseClip`), and stop revealing on a single signal. The
+reveal now takes the first of `requestVideoFrameCallback` (the only event that
+truly means "a frame was presented"), `seeked`, or a 2.5s net that checks the
+decoder actually has frames — so a scene can never be stranded on a still again.
+
+**iOS user activation is transient.** Priming ran once on the first touch, which
+covered the clips loaded by then and nothing after. Priming now runs on every
+gesture and is a no-op for anything already primed; a failed attempt clears the
+flag so a later gesture retries.
+
+**Nothing painted until a whole clip had downloaded.** Blob playback waits for
+the last byte — 7MB before a single frame. Vercel answers range requests, so the
+engine now probes once and, when supported, points the `<video>` straight at the
+URL and lets it stream and seek by range; frames arrive after a few hundred KB.
+Blob remains the fallback for hosts that don't (including `python -m
+http.server`, which is why local preview still uses it).
+
+**The mobile tier was too heavy to decode.** It was full-HD 1080×1920 — 2.25x
+the pixels per seek. It is now **720x1280, crf 25, GOP 3** (`tools/encode-mobile.sh`):
+53MB -> 33MB, and far cheaper per seek. Desktop keeps its 1080 master.
+
+**Everything else competing at load.** All ten posters fetched at once (~600KB
+against the clip on screen) — now only the first, then two ahead of the viewer.
+The Google Fonts stylesheet was render-blocking from a third-party origin — now
+async. The 2.4MB song was set to `preload="auto"` and raced the first clip — now
+`metadata`, with `play()` pulling the rest.
+
+**Compositing.** Every `backdrop-filter` is a full-screen readback per frame and
+they are ruinous on iOS mid-scrub; they now apply only under
+`(hover: hover) and (pointer: fine)`, with opaque equivalents on phones.
+Transparent scene and copy layers are set `visibility: hidden` so the compositor
+skips the eight that aren't on screen, and the standing `will-change` was removed
+from the ten full-screen posters.
+
+`vercel.json` marks the assets `immutable` for a year, so scrolling back and
+repeat visits cost nothing.
+
 ## Why the code looks the way it does
 
 Three things make scroll-scrubbed video work, and each is easy to get wrong:

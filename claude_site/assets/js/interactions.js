@@ -224,17 +224,23 @@
   })();
 
   /* ----------------------------------------------------------------- music */
-  // Browsers refuse un-muted autoplay until the visitor has interacted with the
-  // page, and there is no way around that — so we ask once, and if we're
-  // refused we arm the very next gesture (a tap, a scroll, a key) to start it.
-  // The button always shows the true state, so nobody is left wondering.
+  // The song plays from the moment it is allowed to and keeps playing until the
+  // visitor mutes it. iOS and Chrome both refuse un-muted autoplay before any
+  // interaction and there is no way around that — so we ask immediately, and if
+  // refused we arm every plausible first gesture (including the scroll that
+  // starts the film) and take the first one that lands. Only an explicit mute
+  // stops it, and that choice is remembered.
   (function music() {
     const btn = $('.music');
     if (!btn || !cfg.music) return;
 
+    const KEY = 'shubhmilan.muted';
+    let mutedByUser = false;
+    try { mutedByUser = localStorage.getItem(KEY) === '1'; } catch (e) {}
+
     const a = new Audio();
     a.loop = true;
-    a.preload = 'auto';
+    a.preload = 'metadata';
     a.volume = 0;
     a.src = a.canPlayType('audio/mp4') ? cfg.music.src : cfg.music.srcFallback;
 
@@ -243,48 +249,62 @@
 
     function rampTo(v, ms) {
       clearInterval(fade);
-      const from = a.volume, steps = Math.max(1, Math.round(ms / 40));
+      const from = a.volume, steps = Math.max(1, Math.round(ms / 50));
       let i = 0;
       fade = setInterval(() => {
         i++;
         a.volume = Math.min(1, Math.max(0, from + (v - from) * (i / steps)));
         if (i >= steps) { clearInterval(fade); if (v === 0) a.pause(); }
-      }, 40);
+      }, 50);
     }
 
     function paint(on) {
       btn.setAttribute('aria-pressed', String(on));
       btn.setAttribute('aria-label', on ? 'Mute music' : 'Play music');
     }
+    paint(false);
 
     function start() {
-      return a.play().then(() => { paint(true); rampTo(TARGET, 1400); return true; })
-                     .catch(() => { paint(false); return false; });
+      if (mutedByUser) return Promise.resolve(false);
+      return a.play()
+        .then(() => { paint(true); rampTo(TARGET, 1400); return true; })
+        .catch(() => { paint(false); return false; });
     }
 
-    btn.addEventListener('click', () => {
-      if (a.paused) start();
-      else { paint(false); rampTo(0, 500); }
-    });
-
-    // Try immediately; if the browser says no, the first gesture starts it.
-    start().then((ok) => {
-      if (ok) return;
-      const arm = () => { if (a.paused) start(); off(); };
-      const off = () => {
-        removeEventListener('pointerdown', arm);
-        removeEventListener('keydown', arm);
-        removeEventListener('scroll', arm);
+    // Keep listening until something actually starts it. Browsers only lift the
+    // block on a real gesture, and which gesture that is varies by browser, so
+    // we listen for all of them rather than betting on one.
+    const GESTURES = ['pointerdown', 'touchstart', 'touchend', 'click', 'keydown', 'scroll', 'wheel'];
+    function arm() {
+      const go = () => {
+        if (mutedByUser) { disarm(); return; }
+        start().then((ok) => { if (ok) disarm(); });
       };
-      addEventListener('pointerdown', arm, { passive: true });
-      addEventListener('keydown', arm);
-      addEventListener('scroll', arm, { passive: true });
+      function disarm() { GESTURES.forEach((g) => removeEventListener(g, go)); }
+      GESTURES.forEach((g) => addEventListener(g, go, { passive: true }));
+      return disarm;
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (a.paused) {
+        mutedByUser = false;
+        try { localStorage.setItem(KEY, '0'); } catch (err) {}
+        start();
+      } else {
+        mutedByUser = true;
+        try { localStorage.setItem(KEY, '1'); } catch (err) {}
+        paint(false);
+        rampTo(0, 450);
+      }
     });
 
-    // Don't sing to an empty room.
+    start().then((ok) => { if (!ok) arm(); });
+
+    // Pause while the tab is away, resume on return — unless it was muted.
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden && !a.paused) { a.pause(); btn.dataset.auto = '1'; }
-      else if (!document.hidden && btn.dataset.auto) { delete btn.dataset.auto; start(); }
+      if (document.hidden) { if (!a.paused) { a.pause(); btn.dataset.auto = '1'; } }
+      else if (btn.dataset.auto) { delete btn.dataset.auto; if (!mutedByUser) start(); }
     });
   })();
 

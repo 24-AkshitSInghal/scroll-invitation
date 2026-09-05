@@ -59,9 +59,12 @@
     el.dataset.i = i;
     const img = document.createElement('img');
     img.className = 'scene__poster';
-    img.src = s.poster;
     img.alt = '';
     img.decoding = 'async';
+    // Only the opening poster is wanted up front. The other nine are fetched as
+    // the viewer approaches them — ten at once is ~600KB of requests competing
+    // with the clip that is actually on screen.
+    if (i === 0) img.src = s.poster;
     el.appendChild(img);
     stage.insertBefore(el, stage.firstChild);
     return {
@@ -119,6 +122,63 @@
   const dots = Array.from(rail.children);
 
   /* -- clip loading -------------------------------------------------------- */
+  /* Two strategies, chosen by what the host can actually do.
+
+     Streaming (preferred): point the <video> at the URL and let the browser
+     fetch by range as it seeks. Frames appear after a few hundred KB instead of
+     after the whole file, which is the difference between a scene painting
+     immediately and a phone showing a still for several seconds. Requires the
+     host to answer HTTP range requests — a CDN does, `python -m http.server`
+     does not.
+
+     Blob (fallback): fetch the whole file and play it from an object URL. Always
+     seekable, but nothing paints until the last byte lands. */
+  let rangeOK = null;                       // null = not yet probed
+  function probeRange(url) {
+    if (rangeOK !== null) return Promise.resolve(rangeOK);
+    return fetch(url, { headers: { Range: 'bytes=0-1' } })
+      .then((r) => { rangeOK = (r.status === 206); return rangeOK; })
+      .catch(() => { rangeOK = false; return false; });
+  }
+
+  function attach(sc, src, revoke) {
+    const v = document.createElement('video');
+    v.className = 'scene__video';
+    v.muted = true; v.defaultMuted = true; v.playsInline = true; v.preload = 'auto';
+    v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
+    v.src = src;
+    sc.revoke = revoke || null;
+
+    v.addEventListener('loadedmetadata', () => { sc.ready = true; read(); });
+    v.addEventListener('loadeddata', () => {
+      try { v.pause(); } catch (e) {}
+      prime(v);
+    });
+
+    /* Revealing the clip. The poster stays up until a real frame has painted,
+       because iOS won't paint a seeked-but-never-played muted video and we'd
+       otherwise flash an empty scene.
+
+       The catch: if that signal never arrives, the scene is stuck showing a
+       still for ever — which is exactly what a scroll past the opening looked
+       like on iOS. So take the first of three, rather than betting on one:
+       a presented frame (the only signal that actually means "painted"), a
+       completed seek, or a late check that the decoder has frames at all. */
+    function reveal() {
+      if (sc.painted) return;
+      sc.painted = true;
+      sc.el.classList.add('has-clip');
+    }
+    if (typeof v.requestVideoFrameCallback === 'function') {
+      try { v.requestVideoFrameCallback(reveal); } catch (e) {}
+    }
+    v.addEventListener('seeked', reveal, { once: true });
+    sc.revealTimer = setTimeout(() => { if (v.readyState >= 3) reveal(); }, 2500);
+
+    sc.el.appendChild(v);
+    sc.video = v;
+  }
+
   function loadClip(sc) {
     // Under reduced motion we never fetch video at all: the posters stay up and
     // simply cross-dissolve. No decode cost, no scrubbed motion.
@@ -126,30 +186,33 @@
     sc.loading = true;
     const url = (isMobile() && sc.cfg.clipMobile) ? sc.cfg.clipMobile : sc.cfg.clip;
 
-    fetch(url)
-      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(r.status))))
-      .then((blob) => {
-        const v = document.createElement('video');
-        v.className = 'scene__video';
-        v.muted = true; v.defaultMuted = true; v.playsInline = true; v.preload = 'auto';
-        v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
-        v.src = URL.createObjectURL(blob);
+    probeRange(url).then((ok) => {
+      if (ok) { attach(sc, url); return; }
+      fetch(url)
+        .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(r.status))))
+        .then((blob) => {
+          const obj = URL.createObjectURL(blob);
+          attach(sc, obj, obj);
+        })
+        .catch(() => { sc.loading = false; });   // poster carries the scene
+    });
+  }
 
-        v.addEventListener('loadedmetadata', () => { sc.ready = true; read(); });
-        v.addEventListener('loadeddata', () => {
-          try { v.pause(); } catch (e) {}
-          if (userReady) prime(v);
-        });
-        // Only drop the poster once a real frame has actually painted.
-        v.addEventListener('seeked', () => {
-          sc.painted = true;
-          sc.el.classList.add('has-clip');
-        }, { once: true });
-
-        sc.el.appendChild(v);
-        sc.video = v;
-      })
-      .catch(() => { sc.loading = false; });   // poster carries the scene
+  /* A phone can only keep a handful of video decoders alive at once; ten 
+     1080-tall clips sitting in the DOM is what turns a smooth scrub into a
+     slideshow. Keep a small window around the viewer and tear the rest down —
+     the poster takes over instantly, and reloading is cheap once cached. */
+  function releaseClip(sc) {
+    if (!sc.video) return;
+    const v = sc.video;
+    clearTimeout(sc.revealTimer);
+    sc.video = null; sc.ready = false; sc.loading = false; sc.painted = false;
+    sc.cur = sc.target;
+    sc.el.classList.remove('has-clip');
+    try { v.pause(); } catch (e) {}
+    try { v.removeAttribute('src'); v.load(); } catch (e) {}
+    if (sc.revoke) { URL.revokeObjectURL(sc.revoke); sc.revoke = null; }
+    if (v.parentNode) v.parentNode.removeChild(v);
   }
 
   /* -- scroll read (layout + opacity, cheap) -------------------------------- */
@@ -191,14 +254,20 @@
   function read() {
     const y = scrollY || pageYOffset;
     const fade = (cfg.crossfade || 0.1) * vh;
+    const mobile = isMobile();
 
     let ci = 0;
     for (let i = 0; i < N; i++) if (y >= scenes[i].start) ci = i;
 
     for (let i = 0; i < N; i++) {
       const sc = scenes[i];
-      // Prefetch anything within ~1.5 screens of the viewport.
-      if (y > sc.start - 1.5 * vh && y < sc.end + 1.5 * vh) loadClip(sc);
+      // How far ahead we fetch, and how many decoders we keep alive. A phone
+      // pays for both: every extra clip is bandwidth competing with the one on
+      // screen, and a live decoder it may not have to spare.
+      const near = Math.abs(i - ci) <= (mobile ? 1 : 2);
+      if (Math.abs(i - ci) <= 2 && !sc.img.src) sc.img.src = sc.cfg.poster;
+      if (near) loadClip(sc);
+      else if (sc.video && Math.abs(i - ci) > (mobile ? 2 : 3)) releaseClip(sc);
 
       const local = clamp((y - sc.start) / (sc.end - sc.start));
       // `linger` slows the camera through the middle of the scene without ever
@@ -211,8 +280,10 @@
       if (y < sc.start) outside = sc.start - y;
       else if (y > sc.end) outside = y - sc.end;
       const op = smooth(1 - outside / fade);
+      const vis = op > 0.001;
+      if (vis !== sc.visible) sc.el.style.visibility = vis ? 'visible' : 'hidden';
       sc.el.style.opacity = op;
-      sc.visible = op > 0.001;
+      sc.visible = vis;
       sc.el.style.zIndex = (i === ci) ? 60 : 40 + Math.round(op * 10);
 
       // Before the clip paints, give the poster a touch of drift so a slow
@@ -248,6 +319,8 @@
       }
       // Interactive scenes need a generous hit window, not a razor-thin peak.
       c.style.pointerEvents = cop > 0.55 ? 'auto' : 'none';
+      const cvis = cop > 0.002;
+      if (cvis !== c._vis) { c.style.visibility = cvis ? 'visible' : 'hidden'; c._vis = cvis; }
       c.classList.toggle('is-live', cop > 0.55);
 
       for (const f of fades[i]) {
@@ -272,12 +345,16 @@
 
   /* -- seek loop (rAF, the only place currentTime is written) --------------- */
   function frame() {
-    const eps = isMobile() ? 0.022 : 0.008;   // coarser step on phones = fewer decodes
+    const mobile = isMobile();
+    const eps = mobile ? 0.016 : 0.008;   // coarser step on phones = fewer decodes
     for (let i = 0; i < N; i++) {
       const sc = scenes[i];
       if (!sc.ready || !sc.video) continue;
+      // Only drive what is actually on screen. Seeking an invisible clip costs
+      // exactly as much as seeking a visible one, and on a phone those wasted
+      // decodes are taken straight out of the one the viewer is looking at.
+      if (!sc.visible) { sc.cur = sc.target; continue; }
       if (sc.video.seeking) continue;                       // coalesce — see header
-      if (!sc.visible && Math.abs(sc.cur - sc.target) < 0.002) continue;
 
       // During the scripted intro we drive the clip as fast as the decoder will
       // go: the smoothing that makes hand-scrolling feel good would leave the
@@ -295,21 +372,24 @@
   let introActive = false;
 
   /* -- iOS priming ---------------------------------------------------------- */
-  let userReady = false;
   function prime(v) {
-    if (!isMobile() || !v) return;
+    if (!isMobile() || !v || v._primed) return;
+    v._primed = true;
     try {
       const p = v.play();
-      if (p && p.then) p.then(() => { try { v.pause(); } catch (e) {} }).catch(() => {});
-    } catch (e) {}
+      if (p && p.then) {
+        p.then(() => { try { v.pause(); } catch (e) {} })
+         .catch(() => { v._primed = false; });   // let a later gesture retry
+      }
+    } catch (e) { v._primed = false; }
   }
-  function onFirstGesture() {
-    if (userReady) return;
-    userReady = true;
-    scenes.forEach((sc) => prime(sc.video));
-  }
-  addEventListener('pointerdown', onFirstGesture, { once: true, passive: true });
-  addEventListener('touchstart', onFirstGesture, { once: true, passive: true });
+  // iOS grants playback on a *transient* user activation, so a clip that loads
+  // later is outside the window the first touch opened. Re-prime on every
+  // gesture instead of once — it is a no-op for anything already primed.
+  function onGesture() { scenes.forEach((sc) => prime(sc.video)); }
+  addEventListener('pointerdown', onGesture, { passive: true });
+  addEventListener('touchstart', onGesture, { passive: true });
+  addEventListener('touchend', onGesture, { passive: true });
 
   /* -- wiring --------------------------------------------------------------- */
   addEventListener('scroll', () => {
