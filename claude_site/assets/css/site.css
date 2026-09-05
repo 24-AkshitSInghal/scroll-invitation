@@ -400,7 +400,12 @@ img { max-width: 100%; display: block; }
   position: absolute; inset: 0; z-index: 3;
   width: 100%; height: 100%;
   border-radius: 50%;
-  cursor: grab; touch-action: none;
+  cursor: grab;
+  /* pan-y, NOT none: the foil covers most of the screen, and claiming every
+     gesture on it meant a swipe that began on the medallion could not scroll the
+     page at all — it simply stuck. Vertical belongs to the page; the sideways
+     drag people actually scratch with still reaches the canvas. */
+  touch-action: pan-y;
   transition: opacity 1s var(--ease), transform 1s var(--ease), filter .8s var(--ease);
 }
 .scratch__foil:active { cursor: grabbing; }
@@ -528,7 +533,10 @@ img { max-width: 100%; display: block; }
   width: min(calc(0.58 * var(--vw, 100%)), calc(100% - 28px));
   transform: translate(-50%, -50%);
   max-height: min(calc(0.60 * var(--vh, 100%)), calc(100% - 40px));
-  overflow-y: auto; overscroll-behavior: contain;
+  /* No `overscroll-behavior: contain` here: the card is sized to fit, so there
+     is nothing to scroll internally and containing the overscroll just swallowed
+     the swipe. Letting it chain means the page scrolls normally. */
+  overflow-y: auto;
   padding: 6% 6.5%;
   border-radius: 3px;
   background: linear-gradient(180deg, rgba(255,251,244,.96), rgba(253,246,235,.94));

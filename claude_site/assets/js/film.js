@@ -29,7 +29,14 @@
 window.Film = (function () {
   'use strict';
 
-  const DECODE_AHEAD = 4;    // frames kept decoded either side of the playhead
+  const DECODE_AHEAD = 3;    // frames kept decoded either side of the playhead
+
+  /* Decode to the size actually being drawn, not the file's native 1080x1920.
+     A native bitmap is 8.3MB; at a phone's real backing-store size it is nearer
+     5MB, and with two scenes' windows alive at a seam that difference is tens of
+     megabytes of pressure — which a phone answers with the pauses that read as
+     the page freezing on arrival. Set by the renderer whenever it resizes. */
+  let decodeW = 0, decodeH = 0;
   const FETCH_PARALLEL = 6;  // concurrent frame requests
 
   function Sequence(dir, count) {
@@ -67,7 +74,10 @@ window.Film = (function () {
   Sequence.prototype.decode = function (i) {
     if (this.bitmaps[i] || this.pending[i] || !this.blobs[i]) return;
     const self = this;
-    this.pending[i] = createImageBitmap(this.blobs[i])
+    const opts = decodeW
+      ? { resizeWidth: decodeW, resizeHeight: decodeH, resizeQuality: 'medium' }
+      : undefined;
+    this.pending[i] = createImageBitmap(this.blobs[i], opts)
       .then((bm) => { self.bitmaps[i] = bm; self.pending[i] = null; })
       .catch(() => { self.pending[i] = null; });
   };
@@ -78,11 +88,14 @@ window.Film = (function () {
     const lo = Math.max(0, centre - DECODE_AHEAD);
     const hi = Math.min(this.count - 1, centre + DECODE_AHEAD);
     for (let i = lo; i <= hi; i++) this.decode(i);
+    // Release everything outside the window, frame 0 included. Pinning frame 0
+    // of all eight sequences kept ~66MB resident for the whole visit, which is
+    // exactly the kind of standing cost a phone cannot carry alongside the
+    // window it actually needs.
     for (let i = 0; i < this.count; i++) {
       if (i < lo || i > hi) {
         const bm = this.bitmaps[i];
-        // frame 0 is every scene's poster — worth keeping resident
-        if (bm && i !== 0) { try { bm.close(); } catch (e) {} this.bitmaps[i] = null; }
+        if (bm) { try { bm.close(); } catch (e) {} this.bitmaps[i] = null; }
       }
     }
   };
@@ -115,6 +128,10 @@ window.Film = (function () {
     if (w === this.w && h === this.h) return;
     this.canvas.width = this.w = w;
     this.canvas.height = this.h = h;
+    // Frames are 9:16; decode them to the height we draw at, so drawImage has no
+    // downscale to do either.
+    decodeH = Math.min(1920, h);
+    decodeW = Math.round(decodeH * 1080 / 1920);
     // No inline CSS size: `.film` is inset:0 on the stage, so the canvas always
     // covers whatever the stage currently is. Pinning it in pixels here meant
     // that when a phone's URL bar collapsed and the viewport grew, the canvas

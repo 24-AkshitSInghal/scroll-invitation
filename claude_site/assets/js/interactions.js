@@ -145,25 +145,44 @@
       if (skip) skip.classList.add('is-done');
     }
 
+    /* The foil covers most of the screen, so it cannot simply claim every
+       gesture that starts on it — that is what left the page unable to scroll.
+       A drag stays undecided until it has moved enough to show intent: mostly
+       sideways is a scratch, mostly vertical is the visitor trying to scroll, and
+       we let it go. `touch-action: pan-y` means the browser is already scrolling
+       in that case, and sends us a pointercancel. */
+    const INTENT = 8;            // px of travel before deciding
+    let origin = null;
+
     function start(e) {
       if (done) return;
       if (!sized) paintFoil();
-      drawing = true; last = pt(e);
-      wrap.classList.add('is-touched');
-      e.preventDefault();
+      origin = pt(e);
+      last = origin;
+      drawing = 'pending';
+      // no preventDefault yet — the gesture might belong to the page
     }
     function move(e) {
       if (!drawing || done) return;
       const p = pt(e);
+
+      if (drawing === 'pending') {
+        const dx = Math.abs(p.x - origin.x), dy = Math.abs(p.y - origin.y);
+        if (dx < INTENT && dy < INTENT) { last = p; return; }
+        if (dy > dx) { drawing = false; return; }      // theirs, not ours
+        drawing = true;
+        wrap.classList.add('is-touched');
+      }
+
       scratch(last, p);
       last = p;
       if (++since > 8) { since = 0; if (cleared() > 0.5) finish(); }
       e.preventDefault();
     }
     function end() {
-      if (!drawing) return;
-      drawing = false;
-      if (!done && cleared() > 0.42) finish();
+      const wasDrawing = drawing === true;
+      drawing = false; origin = null;
+      if (wasDrawing && !done && cleared() > 0.42) finish();
     }
 
     canvas.addEventListener('pointerdown', start);

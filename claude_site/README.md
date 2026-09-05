@@ -257,6 +257,28 @@ keeping vertical scroll, and `interactions.js` cancels Safari's own
 It is a deliberate accessibility trade-off; undo it by removing that block and
 `maximum-scale=1` if you would rather people could zoom.
 
+### Two things that swallowed the swipe
+
+Reported as "it sticks for a few seconds and won't let me scroll", and blamed on
+the parallax. It was not the parallax — it was two elements claiming the gesture:
+
+- **The scratch foil** had `touch-action: none`. It covers ~74% of the screen, so
+  a swipe that began anywhere on the medallion was consumed and the page did not
+  move at all. It is `pan-y` now: vertical belongs to the page, and the drag stays
+  undecided until it has travelled 8px, so mostly-sideways scratches and
+  mostly-vertical scrolls away.
+- **The RSVP card** had `overscroll-behavior: contain` with `overflow-y: auto`.
+  The card is sized to fit, so there was nothing to scroll inside it and the
+  `contain` stopped the swipe chaining to the page — it went nowhere.
+
+Both scenes hold their artwork still (`settle` below 1), so the film looked frozen
+at the same moment the page stopped responding, which is why it read as one fault.
+
+Decoded-frame memory made it worse on arrival: frames were decoded at their native
+1080x1920 (8.3MB each) with a window of nine, *plus* frame 0 of all eight
+sequences pinned for the whole visit — about 66MB of standing cost. Frames now
+decode to the size actually drawn, the window is seven, and nothing is pinned.
+
 ### The damped playhead
 
 Frames were indexed straight off scroll position, so a hard flick jumped the
