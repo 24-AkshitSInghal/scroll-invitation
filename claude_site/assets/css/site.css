@@ -1,0 +1,516 @@
+/* ============================================================================
+   ShubhMilan — invitation
+   Palette and type follow the film itself: ivory cloud, champagne gold,
+   blush pink, deep magenta, sage green.
+   ========================================================================== */
+
+:root {
+  --ivory:        #f7f1e6;
+  --ivory-deep:   #efe4d2;
+  --cream:        #fffaf2;
+  --gold:         #b8934c;
+  --gold-deep:    #8a6830;
+  --gold-soft:    #d9bd85;
+  --gold-bright:  #e7cf9a;
+  --blush:        #e6b3bd;
+  --magenta:      #8e2f4c;
+  --magenta-soft: #b8546f;
+  --sage:         #93a184;
+  --ink:          #3c3026;
+  --ink-soft:     #5a4c3e;
+
+  --font-display: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino', Georgia, serif;
+  --font-body:    'Jost', ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  --stage-radius: 6px;
+  --ease: cubic-bezier(.22,.61,.36,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { background: var(--ivory); }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(120% 80% at 50% 0%,   #fff8ec 0%, transparent 60%),
+    radial-gradient(100% 70% at 50% 100%, #f2e6d3 0%, transparent 58%),
+    var(--ivory);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img { max-width: 100%; display: block; }
+[hidden] { display: none !important; }
+
+::selection { background: var(--blush); color: #4a1226; }
+
+/* -- scroll track --------------------------------------------------------- */
+/* The only element with real height. Everything visible is fixed on top. */
+.track { width: 100%; }
+
+/* -- ambience behind the stage -------------------------------------------- */
+.amb {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(58% 42% at 50% 34%, rgba(255,246,229,.95) 0%, rgba(247,241,230,0) 70%),
+    radial-gradient(46% 46% at 12% 78%, rgba(230,179,189,.20) 0%, transparent 70%),
+    radial-gradient(44% 44% at 88% 20%, rgba(217,189,133,.24) 0%, transparent 70%);
+}
+.amb__petal {
+  position: absolute; top: -8vh;
+  width: 12px; height: 12px; border-radius: 60% 40% 55% 45%;
+  background: linear-gradient(140deg, #f0c3cc, #d98ea2);
+  opacity: .32; filter: blur(.3px);
+  animation: drift linear infinite;
+}
+@keyframes drift {
+  0%   { transform: translate3d(0,0,0) rotate(0deg);        opacity: 0; }
+  8%   { opacity: .34; }
+  92%  { opacity: .26; }
+  100% { transform: translate3d(6vw,118vh,0) rotate(320deg); opacity: 0; }
+}
+@media (hover: none), (prefers-reduced-motion: reduce) { .amb__petal { display: none; } }
+
+/* -- the stage: a 9:16 card, because the film is 9:16 --------------------- */
+.stagewrap {
+  position: fixed; inset: 0; z-index: 2;
+  display: grid; place-items: center;
+  pointer-events: none;
+}
+.stage {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--ivory-deep);
+  pointer-events: auto;
+}
+@media (min-width: 861px) {
+  .stage {
+    width: auto;
+    aspect-ratio: 9 / 16;
+    height: min(100dvh, 1180px);
+    border-radius: var(--stage-radius);
+    box-shadow:
+      0 2px 4px rgba(90,66,34,.06),
+      0 30px 70px -18px rgba(90,66,34,.32),
+      0 0 0 1px rgba(184,147,76,.22);
+  }
+}
+
+.scene {
+  position: absolute; inset: 0;
+  will-change: opacity;
+}
+.scene__poster,
+.scene__video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+.scene__video { opacity: 0; transition: opacity .35s linear; }
+.scene.has-clip .scene__video { opacity: 1; }
+.scene.has-clip .scene__poster { opacity: 0; transition: opacity .35s linear .05s; }
+
+/* -- copy ----------------------------------------------------------------- */
+.copylayer { position: absolute; inset: 0; z-index: 70; pointer-events: none; }
+
+.copy {
+  position: absolute; inset: 0;
+  display: grid;
+  padding: max(6vh, env(safe-area-inset-top)) 7% max(7vh, calc(env(safe-area-inset-bottom) + 4vh));
+  opacity: 0;
+  will-change: opacity, transform;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(255,250,242,.95), 0 0 14px rgba(255,250,242,.75);
+}
+/* the glass cards supply their own ground — no halo needed inside them */
+.rsvp, .rsvp * { text-shadow: none; }
+.copy[data-place='center'] { align-content: center; }
+.copy[data-place='lower']  { align-content: end; }
+.copy[data-place='fill']   { align-content: center; padding-left: 0; padding-right: 0; }
+
+/* A whisper of scrim so text stays legible over the busiest frames without
+   ever looking like a box was pasted on the film. */
+.copy[data-place='lower']::before,
+.copy[data-place='center']::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+}
+.copy[data-place='lower']::before {
+  background: linear-gradient(to top, rgba(255,250,242,.94) 0%, rgba(255,250,242,.80) 22%, rgba(255,250,242,.34) 48%, rgba(255,250,242,0) 72%);
+}
+.copy[data-place='center']::before {
+  background: radial-gradient(70% 46% at 50% 50%, rgba(255,250,242,.88) 0%, rgba(255,250,242,.66) 42%, rgba(255,250,242,.18) 72%, rgba(255,250,242,0) 100%);
+}
+
+/* Two lines of copy sharing one spot, cross-fading in place. */
+.stack { display: grid; }
+.stack > * { grid-area: 1 / 1; align-self: end; }
+.copy [data-fade] { will-change: opacity; }
+
+/* -- type ----------------------------------------------------------------- */
+.eyebrow {
+  margin: 0 0 1.5em;
+  font-size: clamp(9px, 1.15vh, 12px);
+  letter-spacing: .42em; text-transform: uppercase;
+  font-weight: 500; color: var(--gold-deep);
+}
+.eyebrow::after {
+  content: ''; display: block; width: 34px; height: 1px; margin: .9em auto 0;
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
+}
+.display {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400; font-style: italic;
+  font-size: clamp(28px, 4.6vh, 54px);
+  line-height: 1.12; letter-spacing: -.005em;
+  color: var(--ink);
+}
+.display--sm { font-size: clamp(22px, 3.4vh, 38px); }
+/* the finale sets both names on one line — size it to survive a 375px phone */
+.display--names { font-size: clamp(17px, 2.7vh, 30px); }
+.amp {
+  display: block; margin: .28em 0;
+  font-family: var(--font-display); font-style: italic;
+  font-size: clamp(20px, 2.9vh, 32px); color: var(--gold);
+}
+.lede {
+  margin: 1.5em auto 0; max-width: 26ch;
+  font-size: clamp(12px, 1.7vh, 15px); line-height: 1.75;
+  color: var(--ink-soft); font-weight: 300;
+}
+.hashtag {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4vh, 44px); font-style: italic;
+  color: var(--magenta); margin: 0;
+}
+.meta {
+  margin: 1.1em 0 0;
+  font-size: clamp(11px, 1.5vh, 14px); line-height: 1.9;
+  letter-spacing: .08em; color: var(--ink-soft);
+}
+.meta strong { font-weight: 500; color: var(--ink); letter-spacing: .04em; }
+
+/* -- families ------------------------------------------------------------- */
+.families {
+  display: grid; gap: 2.2vh; margin-top: 2.4vh;
+}
+.families__side { }
+.families__role {
+  font-size: clamp(9px, 1.05vh, 11px); letter-spacing: .34em; text-transform: uppercase;
+  color: var(--gold); margin: 0 0 .7em;
+}
+.families__name {
+  margin: 0; font-family: var(--font-display);
+  font-size: clamp(16px, 2.3vh, 24px); line-height: 1.45; color: var(--ink);
+}
+.families__rule {
+  width: 1px; height: 3.4vh; margin: 0 auto;
+  background: linear-gradient(to bottom, transparent, var(--gold-soft), transparent);
+}
+
+/* -- scroll cue ----------------------------------------------------------- */
+.cue {
+  display: grid; justify-items: center; gap: .9em; margin-top: 2.6vh;
+  font-size: 9px; letter-spacing: .34em; text-transform: uppercase; color: var(--gold-deep);
+}
+.cue__line {
+  width: 1px; height: 34px; overflow: hidden;
+  background: rgba(184,147,76,.22); position: relative;
+}
+.cue__line::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent, var(--gold));
+  animation: cue 2.1s var(--ease) infinite;
+}
+@keyframes cue { 0% { transform: translateY(-100%); } 60%,100% { transform: translateY(100%); } }
+.is-scrolled .cue { opacity: 0; transition: opacity .5s; }
+
+/* -- buttons -------------------------------------------------------------- */
+.btnrow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 2.4vh; }
+.btn {
+  display: inline-flex; align-items: center; gap: .55em;
+  padding: .95em 1.6em; border: 0; border-radius: 999px; cursor: pointer;
+  font-family: var(--font-body); font-size: clamp(10px, 1.35vh, 12px);
+  letter-spacing: .18em; text-transform: uppercase; font-weight: 400;
+  text-decoration: none; white-space: nowrap;
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease), background .25s;
+}
+.btn--gold {
+  background: linear-gradient(135deg, #c8a462, var(--gold) 55%, #9c7838);
+  color: #fffaf0;
+  box-shadow: 0 6px 18px -6px rgba(146,110,44,.55);
+}
+.btn--ghost {
+  background: rgba(255,250,242,.72);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px rgba(184,147,76,.42);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.btn:hover  { transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
+.btn:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
+.btn[disabled] { opacity: .55; pointer-events: none; }
+
+/* -- scratch card (scene 4) ----------------------------------------------- */
+/* Geometry measured off the medallion in clip 4's final frame: the blank inner
+   disc is centred at 49.8% / 46.9% of the frame and spans 74% of its width.
+   The foil sits just inside that, so the gold ring is never covered. */
+.scratch {
+  position: absolute;
+  left: calc(var(--vx, 0px) + 0.498 * var(--vw, 100%));
+  top:  calc(var(--vy, 0px) + 0.469 * var(--vh, 100%));
+  width: calc(0.70 * var(--vw, 100%)); aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  isolation: isolate;
+}
+.scratch__prize {
+  text-align: center; padding: 0 8%;
+  transform: scale(.94); opacity: .92;
+  transition: transform .7s var(--ease), opacity .7s var(--ease);
+}
+.scratch.is-revealed .scratch__prize { transform: scale(1); opacity: 1; }
+.scratch__foil {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  border-radius: 50%;
+  cursor: grab; touch-action: none;
+  transition: opacity .85s var(--ease);
+}
+.scratch__foil:active { cursor: grabbing; }
+.scratch.is-revealed .scratch__foil { opacity: 0; pointer-events: none; }
+
+.scratch__hint {
+  position: absolute; left: 50%; bottom: 12%;
+  transform: translateX(-50%);
+  z-index: 3; text-align: center; white-space: nowrap;
+  font-size: clamp(9px, 1.15vh, 11px); letter-spacing: .3em; text-transform: uppercase;
+  color: #4a3410; text-shadow: 0 1px 0 rgba(255,248,225,.75);
+  animation: pulse 2.4s ease-in-out infinite;
+  transition: opacity .4s;
+}
+@keyframes pulse { 0%,100% { opacity: .75; } 50% { opacity: 1; } }
+.scratch.is-touched .scratch__hint,
+.scratch.is-revealed .scratch__hint { opacity: 0; pointer-events: none; animation: none; }
+
+.scratch__skip {
+  position: absolute; left: 50%; bottom: -19%;
+  transform: translateX(-50%);
+  z-index: 3; white-space: nowrap;
+  background: none; border: 0; cursor: pointer; padding: .6em .9em;
+  font-family: var(--font-body); font-size: 10px; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--ink-soft);
+  text-decoration: underline; text-underline-offset: 4px;
+  opacity: .6; transition: opacity .3s;
+}
+.scratch__skip:hover { opacity: 1; }
+.scratch.is-revealed .scratch__skip { opacity: 0; pointer-events: none; }
+
+.scratch__label {
+  font-size: clamp(9px, 1.1vh, 11px); letter-spacing: .36em; text-transform: uppercase;
+  color: var(--gold); margin: 0 0 .9em;
+}
+.scratch__date {
+  margin: 0; font-family: var(--font-display); font-style: italic;
+  font-size: clamp(24px, 3.7vh, 42px); line-height: 1.12; color: var(--ink);
+}
+.scratch__day {
+  margin: .8em 0 0; font-size: clamp(10px, 1.3vh, 12px);
+  letter-spacing: .24em; text-transform: uppercase; color: var(--magenta-soft);
+}
+
+/* -- countdown ------------------------------------------------------------ */
+.countdown {
+  display: flex; justify-content: center; gap: clamp(10px, 3vw, 20px);
+  margin-top: 2.4vh;
+}
+.countdown__cell { min-width: 46px; }
+.countdown__cell b {
+  display: block; font-family: var(--font-display); font-weight: 500;
+  font-size: clamp(20px, 3vh, 30px); line-height: 1; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.countdown__cell span {
+  display: block; margin-top: .7em;
+  font-size: 8.5px; letter-spacing: .24em; text-transform: uppercase; color: var(--gold);
+}
+
+/* -- venue ---------------------------------------------------------------- */
+.venue__name {
+  margin: 0; font-family: var(--font-display); font-style: italic;
+  font-size: clamp(23px, 3.5vh, 38px); color: var(--ink);
+}
+.venue__addr {
+  margin: 1.1em 0 0; font-size: clamp(11px, 1.5vh, 13.5px); line-height: 1.85;
+  color: var(--ink-soft); letter-spacing: .05em;
+}
+
+/* -- RSVP (scene 7) -------------------------------------------------------- */
+/* Sits on the blank silk panel from clip 7 — measured inner area is 18.5%–83%
+   across and 16.7%–81% down, centred at 48.9%. The card is inset a hair wider
+   than the silk so the fields stay a usable size on a phone. */
+.rsvp {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--vy, 0px) + 0.489 * var(--vh, 100%));
+  width: min(calc(0.72 * var(--vw, 100%)), calc(100% - 32px));
+  transform: translate(-50%, -50%);
+  max-height: min(calc(0.65 * var(--vh, 100%)), calc(100% - 40px));
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 5% 6%;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255,251,244,.90), rgba(253,246,235,.86));
+  box-shadow:
+    0 0 0 1px rgba(184,147,76,.30),
+    0 1px 0 1px rgba(255,255,255,.5) inset,
+    0 18px 40px -20px rgba(90,66,34,.45);
+  backdrop-filter: blur(9px) saturate(1.05);
+  -webkit-backdrop-filter: blur(9px) saturate(1.05);
+  text-align: left;
+}
+.rsvp__title {
+  margin: 0 0 .2em; text-align: center;
+  font-family: var(--font-display); font-style: italic;
+  font-size: clamp(21px, 3vh, 30px); color: var(--ink);
+}
+.rsvp__sub {
+  margin: 0 0 1.6em; text-align: center;
+  font-size: clamp(9.5px, 1.15vh, 11px); letter-spacing: .16em;
+  text-transform: uppercase; color: var(--gold);
+}
+.field { margin-bottom: 1.05em; }
+.field > label,
+.fieldset > legend {
+  display: block; margin-bottom: .55em; padding: 0;
+  font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-soft);
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%; padding: .8em .9em;
+  font-family: var(--font-body); font-size: 13px; font-weight: 300; color: var(--ink);
+  background: rgba(255,255,255,.72);
+  border: 0; border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(184,147,76,.34);
+  transition: box-shadow .22s;
+}
+.field textarea { resize: vertical; min-height: 3.2em; line-height: 1.6; }
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 0;
+  box-shadow: inset 0 0 0 1px var(--gold), 0 0 0 3px rgba(184,147,76,.16);
+}
+.field input::placeholder, .field textarea::placeholder { color: #b3a595; }
+
+.fieldset { border: 0; padding: 0; margin: 0 0 1.05em; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.choice { position: relative; }
+.choice input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.choice span {
+  display: block; padding: .8em .5em; text-align: center; border-radius: 2px;
+  font-size: 11px; letter-spacing: .1em;
+  background: rgba(255,255,255,.6);
+  box-shadow: inset 0 0 0 1px rgba(184,147,76,.34);
+  transition: all .22s var(--ease);
+}
+.choice input:checked + span {
+  background: linear-gradient(135deg, #c8a462, var(--gold));
+  color: #fffaf0;
+  box-shadow: 0 4px 12px -5px rgba(146,110,44,.6);
+}
+.choice input:focus-visible + span { outline: 2px solid var(--magenta); outline-offset: 2px; }
+
+.rsvp .btn { width: 100%; justify-content: center; margin-top: .5em; }
+.rsvp__note {
+  margin: 1.3em 0 0; text-align: center;
+  font-size: 9.5px; letter-spacing: .14em; color: var(--ink-soft); opacity: .8;
+}
+.rsvp__done { text-align: center; padding: 2.2em .5em; }
+.rsvp__done .display { font-size: clamp(20px, 2.8vh, 28px); }
+.rsvp__done p { margin: 1em 0 0; font-size: 12.5px; line-height: 1.8; color: var(--ink-soft); }
+
+/* -- finale --------------------------------------------------------------- */
+.mark {
+  width: clamp(84px, 13vh, 132px);
+  margin: 0 auto 2.2vh;
+  opacity: .96;
+  filter: drop-shadow(0 6px 16px rgba(120,90,40,.22));
+}
+
+/* -- chrome: progress + rail ---------------------------------------------- */
+.progress {
+  position: fixed; top: 0; right: 0; z-index: 90;
+  width: 2px; height: 100dvh;
+  background: rgba(184,147,76,.12);
+  pointer-events: none;
+}
+.progress__fill {
+  display: block; width: 100%; height: 100%;
+  background: linear-gradient(to bottom, var(--gold-soft), var(--gold));
+  transform: scaleY(0); transform-origin: top;
+}
+
+.rail {
+  position: fixed; right: 22px; top: 50%; transform: translateY(-50%);
+  z-index: 91; display: grid; gap: 13px;
+}
+.rail__dot {
+  position: relative; width: 7px; height: 7px; padding: 0;
+  border: 0; border-radius: 50%; cursor: pointer;
+  background: rgba(184,147,76,.30);
+  transition: all .3s var(--ease);
+}
+.rail__dot:hover { background: rgba(184,147,76,.7); transform: scale(1.25); }
+.rail__dot.is-active { background: var(--magenta); transform: scale(1.35); }
+.rail__label {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%) translateX(6px);
+  white-space: nowrap; opacity: 0; pointer-events: none;
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft);
+  transition: all .3s var(--ease);
+}
+.rail__dot:hover .rail__label { opacity: 1; transform: translateY(-50%) translateX(0); }
+.rail__dot:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
+@media (max-width: 860px) { .rail { right: 12px; gap: 10px; } .rail__label { display: none; } }
+@media (max-width: 400px) { .eyebrow { letter-spacing: .3em; } }
+
+/* -- opening curtain ------------------------------------------------------ */
+.curtain {
+  position: fixed; inset: 0; z-index: 200;
+  display: grid; place-items: center; gap: 0;
+  background: var(--cream);
+  transition: opacity 1.1s var(--ease), visibility 1.1s;
+}
+.curtain.is-up { opacity: 0; visibility: hidden; }
+.curtain__mark {
+  width: clamp(110px, 17vh, 170px);
+  animation: breathe 3.4s ease-in-out infinite;
+}
+@keyframes breathe { 0%,100% { opacity: .82; transform: scale(1); } 50% { opacity: 1; transform: scale(1.02); } }
+.curtain__bar {
+  width: 120px; height: 1px; margin-top: 26px;
+  background: rgba(184,147,76,.2); overflow: hidden; position: relative;
+}
+.curtain__bar::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  animation: sweep 1.5s var(--ease) infinite;
+}
+@keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+/* -- accessibility -------------------------------------------------------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  .scene__poster { transform: none !important; }
+}
