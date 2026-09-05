@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>QA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@1,500;1,600;1,700&family=Jost:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+<style>body{padding:0;background:#e9e2d6}
+.qa-card{position:relative;margin:0;width:100vw;max-width:483px;height:100vh;overflow:hidden;background:#efe4d2}
+.qa-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.qa-card .copy{opacity:1!important}</style></head><body>
+<figure class="qa-card"><img class="qa-frame" src="assets/qa/peak4.jpg" alt="">
+<div class="copylayer"><section class="copy" data-place="fill" aria-label="Save the date">
+        <div class="scratch">
+          <span class="scratch__glow" aria-hidden="true"></span>
+          <div class="scratch__prize">
+            <p class="scratch__label">Save the Date</p>
+            <p class="scratch__date">21 September<br>2026</p>
+            <p class="scratch__day">Monday</p>
+          </div>
+          <canvas class="scratch__foil" role="img"
+                  aria-label="Rose-gold foil covering the date — scratch it, or use the reveal button below"></canvas>
+          <p class="scratch__hint">Scratch to reveal</p>
+          <span class="scratch__burst" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </span>
+        </div>
+        <!-- sits clear of the medallion, in the open cloud below it -->
+        <button class="scratch__skip" type="button">Reveal the date</button>
+      </section></div></figure>
+<script src="assets/js/invite.config.js"></script>
+<script src="assets/js/interactions.js"></script>
+<script>
+const c=document.querySelector('.qa-card');
+function mapVS(){const sw=c.clientWidth,sh=c.clientHeight,k=Math.max(sw/1080,sh/1920),dw=1080*k,dh=1920*k;
+ c.style.setProperty('--vx',((sw-dw)/2)+'px');c.style.setProperty('--vy',((sh-dh)/2)+'px');
+ c.style.setProperty('--vw',dw+'px');c.style.setProperty('--vh',dh+'px');}
+addEventListener('resize',mapVS);mapVS();
+</script></body></html>

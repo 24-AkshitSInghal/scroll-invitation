@@ -240,7 +240,10 @@
       if (sc.video.seeking) continue;                       // coalesce — see header
       if (!sc.visible && Math.abs(sc.cur - sc.target) < 0.002) continue;
 
-      sc.cur += (sc.target - sc.cur) * 0.18;                // rAF smoothing
+      // During the scripted intro we drive the clip as fast as the decoder will
+      // go: the smoothing that makes hand-scrolling feel good would leave the
+      // monogram several seconds behind its own reveal.
+      sc.cur += (sc.target - sc.cur) * (introActive ? 1 : 0.18);
       const dur = sc.video.duration || 1;
       const t = clamp(sc.cur, 0, 0.999) * dur;
       if (Math.abs(sc.video.currentTime - t) > eps) {
@@ -249,6 +252,8 @@
     }
     requestAnimationFrame(frame);
   }
+
+  let introActive = false;
 
   /* -- iOS priming ---------------------------------------------------------- */
   let userReady = false;
@@ -309,6 +314,61 @@
   if (scenes[0].img.complete) setTimeout(lift, 900);
   else scenes[0].img.addEventListener('load', () => setTimeout(lift, 700));
   setTimeout(lift, 6000);   // never trap the visitor behind a slow asset
+
+  /* -- the opening flight --------------------------------------------------- */
+  /* Once the curtain is up we fly the first scene ourselves, slowly, so the
+     monogram draws itself without the visitor having to do anything — then stop
+     and hand over. Any real scroll intent aborts it instantly: this must never
+     fight someone who has decided to move. */
+  function autoIntro() {
+    if (reduce) return;
+    const sc = scenes[0];
+    const target = sc.start + (sc.end - sc.start) * 0.93;   // monogram complete
+    const DUR = 8500;
+    let t0 = null, stop = false;
+
+    const cancel = () => {
+      if (stop) return;
+      stop = true;
+      introActive = false;
+      removeEventListener('wheel', cancel);
+      removeEventListener('touchmove', cancel);
+      removeEventListener('keydown', cancel);
+    };
+    addEventListener('wheel', cancel, { passive: true });
+    addEventListener('touchmove', cancel, { passive: true });
+    addEventListener('keydown', cancel);
+
+    function step(ts) {
+      if (stop) return;
+      if (t0 === null) t0 = ts;
+      const p = clamp((ts - t0) / DUR);
+      // ease-in-out: drifts away from rest, and arrives at rest
+      const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      scrollTo(0, target * e);
+      if (p < 1) requestAnimationFrame(step); else cancel();
+    }
+    introActive = true;
+    requestAnimationFrame(step);
+  }
+
+  /* Don't start flying before the clip can answer — otherwise the scroll runs
+     the whole way while the decoder is still opening the file, and the monogram
+     draws itself long after the camera has stopped. */
+  function whenFirstClipReady(fn, waited) {
+    waited = waited || 0;
+    if (scenes[0].ready || waited > 8000) fn();
+    else setTimeout(() => whenFirstClipReady(fn, waited + 120), 120);
+  }
+  // Only from a cold start at the top — never yank someone who reloaded midway
+  // or followed a link with a restored scroll position.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  addEventListener('load', () => {
+    if ((scrollY || pageYOffset) >= 4) return;
+    whenFirstClipReady(() => {
+      if ((scrollY || pageYOffset) < 4) setTimeout(autoIntro, 700);
+    });
+  });
 
   window.FILM = { scenes, layout, read, isMobile };
 })();

@@ -32,33 +32,33 @@
       canvas.height = Math.round(r.height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Rose gold: a warm copper-pink metal with a bright sheen band raking
-      // across it, so it reads as foil rather than a flat swatch.
+      // Antique gold with a bright sheen band raking across it, so it reads as
+      // struck foil rather than a flat swatch.
       const g = ctx.createLinearGradient(0, 0, r.width, r.height);
-      g.addColorStop(0.00, '#8f4a58');
-      g.addColorStop(0.14, '#c07a7c');
-      g.addColorStop(0.30, '#e8ab9d');
-      g.addColorStop(0.43, '#fff1e6');   // sheen
-      g.addColorStop(0.50, '#ffe0cf');
-      g.addColorStop(0.62, '#d99183');
-      g.addColorStop(0.78, '#b06670');
-      g.addColorStop(0.92, '#d18e8c');
-      g.addColorStop(1.00, '#8c4653');
+      g.addColorStop(0.00, '#8a6420');
+      g.addColorStop(0.13, '#b9903f');
+      g.addColorStop(0.29, '#e3c977');
+      g.addColorStop(0.42, '#fdf3d2');   // sheen
+      g.addColorStop(0.50, '#f6e3ac');
+      g.addColorStop(0.62, '#d4ae62');
+      g.addColorStop(0.78, '#a8801f');
+      g.addColorStop(0.92, '#d9b869');
+      g.addColorStop(1.00, '#8a641f');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, r.width, r.height);
 
       // A soft radial lift in the middle so the disc looks domed, not printed.
       const rg = ctx.createRadialGradient(r.width * 0.4, r.height * 0.34, 0,
                                           r.width * 0.5, r.height * 0.5, r.width * 0.72);
-      rg.addColorStop(0, 'rgba(255,245,238,.55)');
-      rg.addColorStop(1, 'rgba(120,50,60,.16)');
+      rg.addColorStop(0, 'rgba(255,250,225,.55)');
+      rg.addColorStop(1, 'rgba(90,64,10,.18)');
       ctx.fillStyle = rg;
       ctx.fillRect(0, 0, r.width, r.height);
 
       // A little grain so the foil doesn't read as flat vector fill.
       ctx.globalAlpha = 0.06;
       for (let i = 0; i < 900; i++) {
-        ctx.fillStyle = i % 2 ? '#fff' : '#7a3540';
+        ctx.fillStyle = i % 2 ? '#fff' : '#7a5a1c';
         ctx.fillRect(Math.random() * r.width, Math.random() * r.height, 1.6, 1.6);
       }
       ctx.globalAlpha = 1;

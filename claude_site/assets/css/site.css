@@ -22,6 +22,7 @@
   --ink-soft:     #5a4c3e;
 
   --font-display: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino', Georgia, serif;
+  --font-tag:     'Playfair Display', 'Cormorant Garamond', Georgia, serif;
   --font-body:    'Jost', ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
 
   --stage-radius: 6px;
@@ -188,9 +189,21 @@ img { max-width: 100%; display: block; }
   color: var(--ink-soft); font-weight: 300;
 }
 .hashtag {
-  font-family: var(--font-display);
-  font-size: clamp(26px, 4vh, 44px); font-style: italic;
-  color: var(--magenta); margin: 0;
+  font-family: var(--font-tag);
+  font-size: clamp(34px, 5.4vh, 62px);
+  font-style: italic; font-weight: 600;
+  letter-spacing: -.012em; line-height: 1.05;
+  margin: 0;
+  color: #7d2340;
+  text-shadow: 0 1px 2px rgba(255,250,242,.95),
+               0 0 10px rgba(255,250,242,.9),
+               0 0 30px rgba(255,250,242,.6);
+}
+/* the hash reads better a touch lighter and gold */
+.hashtag i, .finale__tag i {
+  font-style: inherit; font-weight: 500;
+  color: #a8842f;
+  margin-right: .04em;
 }
 .meta {
   margin: 1.1em 0 0;
@@ -261,15 +274,17 @@ img { max-width: 100%; display: block; }
 .btn[disabled] { opacity: .55; pointer-events: none; }
 
 /* -- scratch card (scene 4) ----------------------------------------------- */
-/* Geometry measured off the medallion in clip 4's final frame: the blank inner
-   disc is centred at 49.8% / 46.9% of the picture and spans 74% of its width.
+/* Geometry measured off the medallion in clip 4's final frame by walking out
+   from the centre to the gold ring's luminance edge: the blank inner disc is
+   centred at 49.4% / 47.76% of the picture and is 73.9% of its width across
+   (74.6% down — it is very slightly oval, so the foil takes the smaller).
    Positioned in video space (--vx/--vw) because the stage is full-bleed on a
    phone and crops the film at the sides — see scroll-film.js. */
 .scratch {
   position: absolute;
-  left: calc(var(--vx, 0px) + 0.498 * var(--vw, 100%));
-  top:  calc(var(--vy, 0px) + 0.469 * var(--vh, 100%));
-  width: calc(0.70 * var(--vw, 100%)); aspect-ratio: 1;
+  left: calc(var(--vx, 0px) + 0.4935 * var(--vw, 100%));
+  top:  calc(var(--vy, 0px) + 0.4776 * var(--vh, 100%));
+  width: calc(0.735 * var(--vw, 100%)); aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   display: grid; place-items: center;
@@ -280,8 +295,8 @@ img { max-width: 100%; display: block; }
 .scratch__glow {
   position: absolute; inset: -14%;
   border-radius: 50%; pointer-events: none; z-index: 0;
-  background: radial-gradient(circle, rgba(255,228,214,.95) 0%, rgba(232,192,184,.55) 38%,
-              rgba(183,110,121,.18) 62%, transparent 76%);
+  background: radial-gradient(circle, rgba(255,244,214,.95) 0%, rgba(240,214,150,.6) 36%,
+              rgba(184,147,76,.22) 62%, transparent 76%);
   opacity: 0; transform: scale(.55);
 }
 .scratch.is-revealed .scratch__glow { animation: bloom 1.5s var(--ease) forwards; }
@@ -316,8 +331,9 @@ img { max-width: 100%; display: block; }
   position: absolute; left: 50%; bottom: 13%; z-index: 4;
   transform: translateX(-50%);
   text-align: center; white-space: nowrap;
-  font-size: clamp(9px, 1.15vh, 11px); letter-spacing: .3em; text-transform: uppercase;
-  color: #5c2b30; text-shadow: 0 1px 0 rgba(255,240,235,.8);
+  font-size: clamp(12px, 1.75vh, 17px); font-weight: 500;
+  letter-spacing: .3em; text-transform: uppercase;
+  color: #4a3410; text-shadow: 0 1px 0 rgba(255,247,222,.85);
   animation: pulse 2.4s ease-in-out infinite;
   transition: opacity .4s;
 }
@@ -331,7 +347,8 @@ img { max-width: 100%; display: block; }
   position: absolute; left: 50%; top: 50%;
   width: 7px; height: 7px; margin: -3.5px;
   border-radius: 60% 40% 55% 45%;
-  background: linear-gradient(140deg, var(--rose-light), var(--rose-gold));
+  background: linear-gradient(140deg, #fbeec2, var(--gold));
+  box-shadow: 0 0 6px rgba(212,175,95,.75);
   opacity: 0;
 }
 .scratch.is-revealed .scratch__burst i { animation: spark 1.5s var(--ease) forwards; }
@@ -344,16 +361,16 @@ img { max-width: 100%; display: block; }
 
 /* the revealed date, lit from behind */
 .scratch__label {
-  font-size: clamp(9px, 1.1vh, 11px); letter-spacing: .36em; text-transform: uppercase;
-  color: var(--gold-deep); margin: 0 0 .9em;
+  font-size: clamp(10px, 1.3vh, 13px); letter-spacing: .38em; text-transform: uppercase;
+  color: var(--gold-deep); margin: 0 0 .8em;
 }
 .scratch__date {
   margin: 0; font-family: var(--font-display); font-style: italic;
-  font-size: clamp(26px, 4vh, 46px); line-height: 1.1; color: #4a2b21;
+  font-size: clamp(32px, 5.2vh, 62px); line-height: 1.05; color: #47281f;
 }
 .scratch__day {
-  margin: .8em 0 0; font-size: clamp(10px, 1.3vh, 12px);
-  letter-spacing: .26em; text-transform: uppercase; color: var(--rose-gold);
+  margin: .7em 0 0; font-size: clamp(11px, 1.5vh, 14px);
+  letter-spacing: .28em; text-transform: uppercase; color: var(--gold-deep);
 }
 .scratch.is-revealed .scratch__label { animation: lift .9s var(--ease) .1s both; }
 .scratch.is-revealed .scratch__date  { animation: lift .9s var(--ease) .2s both, glow 2.6s ease-in-out .9s infinite; }
@@ -363,24 +380,29 @@ img { max-width: 100%; display: block; }
   to   { opacity: 1; transform: none; }
 }
 @keyframes glow {
-  0%,100% { text-shadow: 0 0 14px rgba(255,222,206,.75), 0 0 34px rgba(183,110,121,.24); }
-  50%     { text-shadow: 0 0 22px rgba(255,232,218,.95), 0 0 56px rgba(183,110,121,.42); }
+  0%,100% { text-shadow: 0 0 14px rgba(255,240,200,.85), 0 0 36px rgba(198,158,72,.35); }
+  50%     { text-shadow: 0 0 24px rgba(255,246,214,1),   0 0 60px rgba(198,158,72,.6); }
 }
 
-/* the assistive reveal, parked in the clear cloud below the medallion */
+/* the assistive reveal: a gold pill, sitting clear of the medallion in the
+   open cloud beneath it */
 .scratch__skip {
   position: absolute; left: 50%;
-  top: calc(var(--vy, 0px) + 0.815 * var(--vh, 100%));
+  top: calc(var(--vy, 0px) + 0.875 * var(--vh, 100%));
   transform: translateX(-50%);
   z-index: 5; white-space: nowrap;
-  background: none; border: 0; cursor: pointer; padding: .6em .9em;
-  font-family: var(--font-body); font-size: 10px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--ink-soft);
-  text-decoration: underline; text-underline-offset: 5px;
-  text-decoration-color: rgba(183,110,121,.5);
-  opacity: .72; transition: opacity .3s;
+  display: inline-flex; align-items: center;
+  padding: .9em 1.7em; border: 0; border-radius: 999px; cursor: pointer;
+  font-family: var(--font-body); font-size: clamp(10px, 1.35vh, 12px);
+  letter-spacing: .2em; text-transform: uppercase; font-weight: 400;
+  background: linear-gradient(135deg, #c8a462, var(--gold) 55%, #9c7838);
+  color: #fffaf0;
+  box-shadow: 0 6px 18px -6px rgba(146,110,44,.55);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease), opacity .4s;
 }
-.scratch__skip:hover { opacity: 1; }
+.scratch__skip:hover  { transform: translateX(-50%) translateY(-2px); }
+.scratch__skip:active { transform: translateX(-50%); }
+.scratch__skip:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
 .copy:has(.scratch.is-revealed) .scratch__skip { opacity: 0; pointer-events: none; }
 
 /* -- countdown ------------------------------------------------------------ */
@@ -513,11 +535,13 @@ img { max-width: 100%; display: block; }
   font-size: .68em; color: var(--gold-deep); font-weight: 400;
 }
 .finale__tag {
-  margin: .9em 0 0;
-  font-family: var(--font-display); font-style: italic; font-weight: 500;
-  font-size: clamp(22px, 3.4vh, 40px);
-  color: var(--magenta);
-  text-shadow: 0 0 18px rgba(255,250,242,.9), 0 1px 2px rgba(255,250,242,.95);
+  margin: .85em 0 0;
+  font-family: var(--font-tag); font-style: italic; font-weight: 600;
+  font-size: clamp(30px, 4.8vh, 56px); letter-spacing: -.012em;
+  color: #7d2340;
+  text-shadow: 0 1px 2px rgba(255,250,242,.95),
+               0 0 10px rgba(255,250,242,.9),
+               0 0 30px rgba(255,250,242,.6);
 }
 .finale__tag::before {
   content: ''; display: block; width: 46px; height: 1px; margin: 0 auto 1em;

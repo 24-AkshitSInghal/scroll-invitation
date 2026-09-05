@@ -43,10 +43,10 @@ The payload is `{ name, attending, message, submittedAt }`.
 
 | # | Clip | Scene | Notes |
 |---|------|-------|-------|
-| 1 | c1 | Monogram opening | Greeting on landing; `#ShubhMilan` appears as the monogram finishes drawing (~88% in) |
+| 1 | c1 | Monogram opening | **Auto-flies itself** on load; `#ShubhMilan` appears as the monogram finishes drawing |
 | 2 | c2 | The couple | Names inside the floral arch |
 | 3 | c3 | Families | Both sets of parents |
-| 4 | c4 | Save the date | **Scratch card** — rose-gold foil over the medallion, with a bloom + petal burst on reveal |
+| 4 | c4 | Save the date | **Scratch card** — rose-gold foil filling the medallion (73.5% of picture width, the measured disc), with a bloom + petal burst on reveal |
 | 5 | c5 | Ceremony | Live countdown + Add to calendar (`.ics`) |
 | 6 | c6 | Venue | Address + Open map |
 | 7 | c7 | RSVP | **Form** on the silk panel, held to 58% of the picture so both birds stay visible |
@@ -73,7 +73,32 @@ The payload is `{ name, attending, message, submittedAt }`.
   A ramp that begins at `0` is still *invisible* at `0` — that's why the opening
   scene's ramps start slightly negative.
 
+### Type
+
+`#ShubhMilan` is the one thing guests have to remember, so it gets its own face:
+**Playfair Display** italic 600 (`--font-tag`), well above the body serif in size
+and weight, with the `#` in gold. It is deliberately *not* gradient-filled text —
+`background-clip: text` combined with a bright drop-shadow glow bleached it to a
+pale pink; solid ink with a plain halo is both richer and predictable everywhere.
+
 ---
+
+### The opening flight
+
+On a cold load at the top, the page flies the first scene itself over ~8.5s so
+the monogram draws without the visitor doing anything, then stops and hands over.
+Three things it has to get right, all in `autoIntro()`:
+
+- **It waits for the clip.** Starting before the decoder can answer meant the
+  scroll ran the whole way while the picture was still on frame 0 — the monogram
+  finished drawing several seconds after the camera had already stopped.
+- **It drops the smoothing.** The rAF lerp that makes hand-scrolling feel good
+  puts the picture behind a scripted scroll, so `introActive` sets the follow
+  factor to 1 and the clip tracks as fast as the decoder allows. (Seek coalescing
+  still protects it.)
+- **It never fights the visitor.** Any wheel, touchmove or keypress aborts it
+  instantly, and it only runs from a cold start at the very top — a reload
+  midway, or `prefers-reduced-motion`, skips it entirely.
 
 ## Why the code looks the way it does
 
