@@ -214,17 +214,24 @@ img { max-width: 100%; display: block; }
 .meta strong { font-weight: 500; color: var(--ink); letter-spacing: .04em; }
 
 /* -- the portrait (scene 3) ------------------------------------------------ */
-/* Sits inside the floral wreath clip 2 comes to rest on — the opening measures
-   roughly 20%–80% across and 12%–62% down. An arch-topped frame suits a
-   full-length portrait far better than an oval, which would crop the lehenga
-   and the feet. Positioned in video space so it stays on the wreath when the
-   stage crops the film on a phone. */
+/* Measured off the frame clip 2 rests on: the wreath's opening runs x 24%–78%,
+   y 15.6%–64.6%, centred at 50.9% / 40.1%, and there is clear cloud below the
+   whole wreath from about 76% down.
+   The frame is inset a little inside the opening rather than filling it — the
+   opening is an oval, so a rectangle spanning its full height pushes its top
+   corners into the flowers. It sits low in the opening (more air above than
+   below) because the wreath's lower flowers crowd in at ~64.6%; that bottom
+   edge is the binding constraint, so moving the photo further down means
+   shrinking it, not just shifting it. Arch-topped, not oval: an oval would crop the
+   lehenga and both pairs of feet, which is most of what makes the photograph.
+   Positioned in video space so it stays on the wreath when a phone crops the
+   film at the sides. */
 .portrait {
   position: absolute;
-  left: calc(var(--vx, 0px) + 0.50 * var(--vw, 100%));
-  top:  calc(var(--vy, 0px) + 0.370 * var(--vh, 100%));
+  left: calc(var(--vx, 0px) + 0.505 * var(--vw, 100%));
+  top:  calc(var(--vy, 0px) + 0.422 * var(--vh, 100%));
   transform: translate(-50%, -50%);
-  width: calc(0.54 * var(--vw, 100%));
+  width: calc(0.47 * var(--vw, 100%));
   margin: 0;
 }
 .portrait img {
@@ -236,14 +243,22 @@ img { max-width: 100%; display: block; }
     0 0 0 8px rgba(184,147,76,.30),
     0 18px 40px -18px rgba(90,66,34,.55);
 }
-.portrait figcaption {
-  margin-top: 1.5em;
-  font-family: var(--font-display); font-style: italic;
-  font-size: clamp(15px, 2.1vh, 24px); line-height: 1.2;
+/* the names clear the wreath entirely and sit on the open cloud beneath it */
+.portrait__names {
+  position: absolute;
+  left: calc(var(--vx, 0px) + 0.50 * var(--vw, 100%));
+  top:  calc(var(--vy, 0px) + 0.800 * var(--vh, 100%));
+  transform: translateX(-50%);
+  margin: 0; white-space: nowrap;
+  font-family: var(--font-tag);
+  font-style: italic; font-weight: 500;
+  font-size: min(clamp(21px, 3.4vh, 40px), 8.2vw); letter-spacing: -.005em;
   color: var(--ink);
-  text-shadow: 0 1px 2px rgba(255,250,242,.95), 0 0 14px rgba(255,250,242,.8);
+  text-shadow: 0 1px 2px rgba(255,250,242,.95), 0 0 18px rgba(255,250,242,.85);
 }
-.portrait figcaption span { color: var(--gold); margin: 0 .18em; }
+.portrait__names span {
+  color: var(--gold); margin: 0 .22em; font-weight: 400;
+}
 
 /* -- families ------------------------------------------------------------- */
 .families {

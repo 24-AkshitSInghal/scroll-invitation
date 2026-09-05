@@ -88,10 +88,23 @@ dropping a still scene in between leaves the flight continuous on both sides.
 
 ### Swapping the photograph
 
-`assets/img/couple.jpg` (760×1188). Replace it and keep a portrait aspect —
-`.portrait` is arch-topped and sized to 54% of the picture width, which lands it
-inside the wreath clip 2 rests on. An oval would crop the lehenga and the feet,
-which is why it isn't one.
+`assets/img/couple.jpg` (760×1188). Replace it and keep a portrait aspect.
+
+`.portrait` is arch-topped, 47% of the picture width, centred on `50.5% / 42.2%`.
+The wreath clip 2 rests on has an opening of `24%–78%` across and `15.6%–64.6%`
+down; the frame lands at `27%–74%` and `21.5%–62.9%`, deliberately **inset
+inside** that rather than filling it: the opening is an oval, so a rectangle
+spanning its full height pushes its top corners into the flowers. It sits low in
+the opening on purpose (5.9% of air above, 1.7% below) — the lower flowers are
+the binding constraint, so moving the photo further down means shrinking it
+rather than just shifting it. Arch-topped and not oval, because an oval crops the
+lehenga and both pairs of feet — most of what makes the photograph.
+
+The names are a separate `.portrait__names`, not a `<figcaption>`, so they can be
+positioned independently of the frame: they sit at `80%` of the picture height,
+clear of the wreath, which bottoms out around `76%`. Playfair Display italic —
+the same display face as the hashtag — capped by `8.2vw` as well as viewport
+height so `white-space: nowrap` can't overflow a narrow, tall phone.
 
 ### Type
 
