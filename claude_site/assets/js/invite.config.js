@@ -12,9 +12,13 @@
    Per-section knobs
      scroll : viewport-heights of scroll this scene occupies (more = slower)
      settle : 0..1 — the clip reaches its FINAL frame at this point in the band
-              and holds there for the rest of it. Used for the scenes the
-              visitor has to interact with (scratch card, RSVP) so the artwork
-              is locked still under their finger.
+              and HOLDS there for the rest of it. Only for scenes that are meant
+              to come to rest: the logo hold, the scratch card, the RSVP panel
+              and the finale. A hold mid-flight reads as the camera stalling.
+     linger : 0..0.6 — instead of stopping, slow the camera through the middle of
+              the scene (where the copy peaks) and let it run at full speed into
+              the seam. f(0)=0 and f(1)=1 are preserved, so the seam frames are
+              untouched and the flight stays continuous across the join.
      copy   : [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd] in local 0..1
    ========================================================================== */
 
@@ -57,9 +61,21 @@ window.INVITE = {
     whatsapp: null,                    // e.g. '919876543210' — adds a WhatsApp fallback
   },
 
+  /* -- music ---------------------------------------------------------------- */
+  /* Already trimmed to start at 0:10 of the original and faded at both ends so
+     `loop` doesn't click on the wrap. Browsers block un-muted autoplay, so the
+     player starts on the visitor's first interaction if the initial attempt is
+     refused. */
+  music: {
+    src: 'assets/audio/kudmayi.m4a',
+    srcFallback: 'assets/audio/kudmayi.mp3',
+    title: 'Kudmayi',
+    volume: 0.55,
+  },
+
   /* -- the film ------------------------------------------------------------ */
   diveScroll: 1.45,        // default viewport-heights per scene
-  crossfade: 0.10,         // seam dissolve width, in viewport-heights
+  crossfade: 0.16,         // seam dissolve width, in viewport-heights
 
   sections: [
     {
@@ -73,14 +89,14 @@ window.INVITE = {
       id: 'couple', label: 'The Couple', kind: 'couple',
       clip: 'assets/video/c2.mp4', clipMobile: 'assets/video/c2-m.mp4',
       poster: 'assets/poster/c2.jpg',
-      scroll: 1.6, settle: 0.82, copy: [0.34, 0.52, 0.90, 1],
+      scroll: 1.7, settle: 1, linger: 0.35, copy: [0.42, 0.60, 0.92, 1],
       place: 'center',
     },
     {
       id: 'family', label: 'Our Families', kind: 'family',
       clip: 'assets/video/c3.mp4', clipMobile: 'assets/video/c3-m.mp4',
       poster: 'assets/poster/c3.jpg',
-      scroll: 1.6, settle: 0.80, copy: [0.36, 0.54, 0.90, 1],
+      scroll: 1.7, settle: 1, linger: 0.35, copy: [0.44, 0.62, 0.92, 1],
       place: 'center',
     },
     {
@@ -94,14 +110,14 @@ window.INVITE = {
       id: 'ceremony', label: 'The Ceremony', kind: 'ceremony',
       clip: 'assets/video/c5.mp4', clipMobile: 'assets/video/c5-m.mp4',
       poster: 'assets/poster/c5.jpg',
-      scroll: 1.9, settle: 0.74, copy: [0.34, 0.52, 0.94, 1],
+      scroll: 2.0, settle: 1, linger: 0.35, copy: [0.40, 0.58, 0.94, 1],
       place: 'center',
     },
     {
       id: 'venue', label: 'The Venue', kind: 'venue',
       clip: 'assets/video/c6.mp4', clipMobile: 'assets/video/c6-m.mp4',
       poster: 'assets/poster/c6.jpg',
-      scroll: 2.0, settle: 0.68, copy: [0.40, 0.56, 0.96, 1],
+      scroll: 2.1, settle: 1, linger: 0.35, copy: [0.46, 0.64, 0.96, 1],
       place: 'lower',
     },
     {

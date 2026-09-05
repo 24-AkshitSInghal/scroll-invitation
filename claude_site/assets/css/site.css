@@ -10,6 +10,8 @@
   --cream:        #fffaf2;
   --gold:         #b8934c;
   --gold-deep:    #8a6830;
+  --rose-gold:    #b76e79;
+  --rose-light:   #e8c0b8;
   --gold-soft:    #d9bd85;
   --gold-bright:  #e7cf9a;
   --blush:        #e6b3bd;
@@ -260,8 +262,9 @@ img { max-width: 100%; display: block; }
 
 /* -- scratch card (scene 4) ----------------------------------------------- */
 /* Geometry measured off the medallion in clip 4's final frame: the blank inner
-   disc is centred at 49.8% / 46.9% of the frame and spans 74% of its width.
-   The foil sits just inside that, so the gold ring is never covered. */
+   disc is centred at 49.8% / 46.9% of the picture and spans 74% of its width.
+   Positioned in video space (--vx/--vw) because the stage is full-bleed on a
+   phone and crops the film at the sides — see scroll-film.js. */
 .scratch {
   position: absolute;
   left: calc(var(--vx, 0px) + 0.498 * var(--vw, 100%));
@@ -272,59 +275,113 @@ img { max-width: 100%; display: block; }
   display: grid; place-items: center;
   isolation: isolate;
 }
+
+/* the glow that blooms out of the medallion the moment it is cleared */
+.scratch__glow {
+  position: absolute; inset: -14%;
+  border-radius: 50%; pointer-events: none; z-index: 0;
+  background: radial-gradient(circle, rgba(255,228,214,.95) 0%, rgba(232,192,184,.55) 38%,
+              rgba(183,110,121,.18) 62%, transparent 76%);
+  opacity: 0; transform: scale(.55);
+}
+.scratch.is-revealed .scratch__glow { animation: bloom 1.5s var(--ease) forwards; }
+@keyframes bloom {
+  0%   { opacity: 0;   transform: scale(.55); }
+  38%  { opacity: 1;   transform: scale(1.06); }
+  100% { opacity: .42; transform: scale(1); }
+}
+
 .scratch__prize {
+  position: relative; z-index: 2;
   text-align: center; padding: 0 8%;
-  transform: scale(.94); opacity: .92;
-  transition: transform .7s var(--ease), opacity .7s var(--ease);
+  transform: scale(.92); opacity: .9;
+  transition: transform .9s var(--ease), opacity .9s var(--ease);
 }
 .scratch.is-revealed .scratch__prize { transform: scale(1); opacity: 1; }
+
 .scratch__foil {
-  position: absolute; inset: 0; width: 100%; height: 100%;
+  position: absolute; inset: 0; z-index: 3;
+  width: 100%; height: 100%;
   border-radius: 50%;
   cursor: grab; touch-action: none;
-  transition: opacity .85s var(--ease);
+  transition: opacity 1s var(--ease), transform 1s var(--ease), filter .8s var(--ease);
 }
 .scratch__foil:active { cursor: grabbing; }
-.scratch.is-revealed .scratch__foil { opacity: 0; pointer-events: none; }
+.scratch.is-revealed .scratch__foil {
+  opacity: 0; transform: scale(1.10); filter: brightness(1.5) blur(6px);
+  pointer-events: none;
+}
 
 .scratch__hint {
-  position: absolute; left: 50%; bottom: 12%;
+  position: absolute; left: 50%; bottom: 13%; z-index: 4;
   transform: translateX(-50%);
-  z-index: 3; text-align: center; white-space: nowrap;
+  text-align: center; white-space: nowrap;
   font-size: clamp(9px, 1.15vh, 11px); letter-spacing: .3em; text-transform: uppercase;
-  color: #4a3410; text-shadow: 0 1px 0 rgba(255,248,225,.75);
+  color: #5c2b30; text-shadow: 0 1px 0 rgba(255,240,235,.8);
   animation: pulse 2.4s ease-in-out infinite;
   transition: opacity .4s;
 }
-@keyframes pulse { 0%,100% { opacity: .75; } 50% { opacity: 1; } }
+@keyframes pulse { 0%,100% { opacity: .78; } 50% { opacity: 1; } }
 .scratch.is-touched .scratch__hint,
 .scratch.is-revealed .scratch__hint { opacity: 0; pointer-events: none; animation: none; }
 
-.scratch__skip {
-  position: absolute; left: 50%; bottom: -19%;
-  transform: translateX(-50%);
-  z-index: 3; white-space: nowrap;
-  background: none; border: 0; cursor: pointer; padding: .6em .9em;
-  font-family: var(--font-body); font-size: 10px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--ink-soft);
-  text-decoration: underline; text-underline-offset: 4px;
-  opacity: .6; transition: opacity .3s;
+/* petal sparks thrown outward on reveal — one shot, then gone */
+.scratch__burst { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.scratch__burst i {
+  position: absolute; left: 50%; top: 50%;
+  width: 7px; height: 7px; margin: -3.5px;
+  border-radius: 60% 40% 55% 45%;
+  background: linear-gradient(140deg, var(--rose-light), var(--rose-gold));
+  opacity: 0;
 }
-.scratch__skip:hover { opacity: 1; }
-.scratch.is-revealed .scratch__skip { opacity: 0; pointer-events: none; }
+.scratch.is-revealed .scratch__burst i { animation: spark 1.5s var(--ease) forwards; }
+@keyframes spark {
+  0%   { opacity: 0;   transform: translate(0,0) scale(.3) rotate(0deg); }
+  18%  { opacity: 1; }
+  100% { opacity: 0;
+         transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--r, 200deg)); }
+}
 
+/* the revealed date, lit from behind */
 .scratch__label {
   font-size: clamp(9px, 1.1vh, 11px); letter-spacing: .36em; text-transform: uppercase;
-  color: var(--gold); margin: 0 0 .9em;
+  color: var(--gold-deep); margin: 0 0 .9em;
 }
 .scratch__date {
   margin: 0; font-family: var(--font-display); font-style: italic;
-  font-size: clamp(24px, 3.7vh, 42px); line-height: 1.12; color: var(--ink);
+  font-size: clamp(26px, 4vh, 46px); line-height: 1.1; color: #4a2b21;
 }
 .scratch__day {
   margin: .8em 0 0; font-size: clamp(10px, 1.3vh, 12px);
-  letter-spacing: .24em; text-transform: uppercase; color: var(--magenta-soft);
+  letter-spacing: .26em; text-transform: uppercase; color: var(--rose-gold);
 }
+.scratch.is-revealed .scratch__label { animation: lift .9s var(--ease) .1s both; }
+.scratch.is-revealed .scratch__date  { animation: lift .9s var(--ease) .2s both, glow 2.6s ease-in-out .9s infinite; }
+.scratch.is-revealed .scratch__day   { animation: lift .9s var(--ease) .34s both; }
+@keyframes lift {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes glow {
+  0%,100% { text-shadow: 0 0 14px rgba(255,222,206,.75), 0 0 34px rgba(183,110,121,.24); }
+  50%     { text-shadow: 0 0 22px rgba(255,232,218,.95), 0 0 56px rgba(183,110,121,.42); }
+}
+
+/* the assistive reveal, parked in the clear cloud below the medallion */
+.scratch__skip {
+  position: absolute; left: 50%;
+  top: calc(var(--vy, 0px) + 0.815 * var(--vh, 100%));
+  transform: translateX(-50%);
+  z-index: 5; white-space: nowrap;
+  background: none; border: 0; cursor: pointer; padding: .6em .9em;
+  font-family: var(--font-body); font-size: 10px; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--ink-soft);
+  text-decoration: underline; text-underline-offset: 5px;
+  text-decoration-color: rgba(183,110,121,.5);
+  opacity: .72; transition: opacity .3s;
+}
+.scratch__skip:hover { opacity: 1; }
+.copy:has(.scratch.is-revealed) .scratch__skip { opacity: 0; pointer-events: none; }
 
 /* -- countdown ------------------------------------------------------------ */
 .countdown {
@@ -353,18 +410,18 @@ img { max-width: 100%; display: block; }
 }
 
 /* -- RSVP (scene 7) -------------------------------------------------------- */
-/* Sits on the blank silk panel from clip 7 — measured inner area is 18.5%–83%
-   across and 16.7%–81% down, centred at 48.9%. The card is inset a hair wider
-   than the silk so the fields stay a usable size on a phone. */
+/* Sits on the blank silk panel from clip 7 (inner area 18.5%–83% across,
+   16.7%–81% down). Held to 58% of the picture width so it clears the two
+   paradise flycatchers perched on the frame at ~8–18% and ~80–92%. */
 .rsvp {
   position: absolute;
   left: 50%;
   top: calc(var(--vy, 0px) + 0.489 * var(--vh, 100%));
-  width: min(calc(0.72 * var(--vw, 100%)), calc(100% - 32px));
+  width: min(calc(0.58 * var(--vw, 100%)), calc(100% - 28px));
   transform: translate(-50%, -50%);
-  max-height: min(calc(0.65 * var(--vh, 100%)), calc(100% - 40px));
+  max-height: min(calc(0.60 * var(--vh, 100%)), calc(100% - 40px));
   overflow-y: auto; overscroll-behavior: contain;
-  padding: 5% 6%;
+  padding: 6% 6.5%;
   border-radius: 3px;
   background: linear-gradient(180deg, rgba(255,251,244,.90), rgba(253,246,235,.86));
   box-shadow:
@@ -382,8 +439,8 @@ img { max-width: 100%; display: block; }
 }
 .rsvp__sub {
   margin: 0 0 1.6em; text-align: center;
-  font-size: clamp(9.5px, 1.15vh, 11px); letter-spacing: .16em;
-  text-transform: uppercase; color: var(--gold);
+  font-size: clamp(9px, 1.05vh, 10.5px); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--gold-deep); white-space: nowrap;
 }
 .field { margin-bottom: 1.05em; }
 .field > label,
@@ -437,12 +494,34 @@ img { max-width: 100%; display: block; }
 .rsvp__done .display { font-size: clamp(20px, 2.8vh, 28px); }
 .rsvp__done p { margin: 1em 0 0; font-size: 12.5px; line-height: 1.8; color: var(--ink-soft); }
 
-/* -- finale --------------------------------------------------------------- */
-.mark {
-  width: clamp(84px, 13vh, 132px);
-  margin: 0 auto 2.2vh;
-  opacity: .96;
-  filter: drop-shadow(0 6px 16px rgba(120,90,40,.22));
+/* -- finale (scene 8) ------------------------------------------------------ */
+/* No monogram here — the film already draws it. The names and the hashtag are
+   the whole composition, sized to fill the open centre of the wreath. */
+.finale__line {
+  margin: 0 0 1.5em;
+  font-size: clamp(12px, 1.7vh, 15.5px); line-height: 1.8;
+  color: var(--ink-soft); font-weight: 300;
+}
+.finale__names {
+  margin: 0;
+  font-family: var(--font-display); font-style: italic; font-weight: 500;
+  font-size: clamp(26px, 4.3vh, 50px); line-height: 1.15;
+  color: var(--ink);
+}
+.finale__names span {
+  display: block; margin: .04em 0;
+  font-size: .68em; color: var(--gold-deep); font-weight: 400;
+}
+.finale__tag {
+  margin: .9em 0 0;
+  font-family: var(--font-display); font-style: italic; font-weight: 500;
+  font-size: clamp(22px, 3.4vh, 40px);
+  color: var(--magenta);
+  text-shadow: 0 0 18px rgba(255,250,242,.9), 0 1px 2px rgba(255,250,242,.95);
+}
+.finale__tag::before {
+  content: ''; display: block; width: 46px; height: 1px; margin: 0 auto 1em;
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
 }
 
 /* -- chrome: progress + rail ---------------------------------------------- */
@@ -480,6 +559,45 @@ img { max-width: 100%; display: block; }
 .rail__dot:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
 @media (max-width: 860px) { .rail { right: 12px; gap: 10px; } .rail__label { display: none; } }
 @media (max-width: 400px) { .eyebrow { letter-spacing: .3em; } }
+
+/* -- music toggle ---------------------------------------------------------- */
+.music {
+  position: fixed; z-index: 95;
+  top: max(18px, env(safe-area-inset-top)); right: 18px;
+  width: 42px; height: 42px; padding: 0;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%; cursor: pointer;
+  background: rgba(255,250,242,.78);
+  box-shadow: inset 0 0 0 1px rgba(184,147,76,.4), 0 4px 14px -6px rgba(90,66,34,.4);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: var(--gold-deep);
+  transition: transform .25s var(--ease), background .25s;
+}
+.music:hover { transform: scale(1.06); background: rgba(255,250,242,.94); }
+.music:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
+.music svg { width: 19px; height: 19px; fill: none; stroke: currentColor;
+             stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.music svg path:first-child { fill: currentColor; stroke-width: 1.2; }
+.music__on { display: none; }
+.music[aria-pressed='true'] .music__on  { display: block; }
+.music[aria-pressed='true'] .music__off { display: none; }
+
+/* a slow halo while it is playing, so the control reads as "on" at a glance */
+.music__ring {
+  position: absolute; inset: -5px; border-radius: 50%;
+  border: 1px solid rgba(183,110,121,.45);
+  opacity: 0; pointer-events: none;
+}
+.music[aria-pressed='true'] .music__ring { animation: halo 2.6s ease-out infinite; }
+@keyframes halo {
+  0%   { opacity: .7; transform: scale(.86); }
+  100% { opacity: 0;  transform: scale(1.22); }
+}
+.music[aria-pressed='true'] .music__on .w1 { animation: wave 1.9s ease-in-out infinite; }
+.music[aria-pressed='true'] .music__on .w2 { animation: wave 1.9s ease-in-out .28s infinite; }
+@keyframes wave { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+
+@media (max-width: 860px) { .music { width: 38px; height: 38px; right: 12px; } }
 
 /* -- opening curtain ------------------------------------------------------ */
 .curtain {

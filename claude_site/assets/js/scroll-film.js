@@ -37,6 +37,10 @@
 
   const clamp = (v, a = 0, b = 1) => (v < a ? a : v > b ? b : v);
   const smooth = (t) => { t = clamp(t); return t * t * (3 - 2 * t); };
+  /* Slows time through the middle of a scene and speeds it back up toward the
+     edges. f(0)=0 and f(1)=1 exactly, so the frames either side of a seam are
+     the ones the clips were chained on — the join stays frame-identical. */
+  const lingerEase = (t, k) => (k ? (t -= 0.5, clamp(0.5 + t * (1 - k) + k * 4 * t * t * t)) : t);
   const $ = (sel, ctx) => (ctx || document).querySelector(sel);
 
   /* -- geometry ----------------------------------------------------------- */
@@ -64,7 +68,7 @@
       i, cfg: s, el, img,
       video: null, ready: false, loading: false, painted: false,
       cur: 0, target: 0, visible: false, start: 0, end: 0,
-      w: s.scroll || cfg.diveScroll, settle: s.settle || 1,
+      w: s.scroll || cfg.diveScroll, settle: s.settle || 1, linger: s.linger || 0,
     };
   });
 
@@ -175,9 +179,11 @@
       if (y > sc.start - 1.5 * vh && y < sc.end + 1.5 * vh) loadClip(sc);
 
       const local = clamp((y - sc.start) / (sc.end - sc.start));
-      // `settle` lets a scene reach its last frame early and hold there, so the
-      // artwork is locked still while the visitor scratches / fills the form.
-      sc.target = clamp(local / sc.settle);
+      // `linger` slows the camera through the middle of the scene without ever
+      // stopping it, and `settle` brings it to a genuine rest early. Transit
+      // scenes use the first so the flight runs straight through the seam; only
+      // the scenes designed to come to rest use the second.
+      sc.target = clamp(lingerEase(local, sc.linger) / sc.settle);
 
       let outside = 0;
       if (y < sc.start) outside = sc.start - y;

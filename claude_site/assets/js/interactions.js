@@ -32,19 +32,33 @@
       canvas.height = Math.round(r.height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+      // Rose gold: a warm copper-pink metal with a bright sheen band raking
+      // across it, so it reads as foil rather than a flat swatch.
       const g = ctx.createLinearGradient(0, 0, r.width, r.height);
-      g.addColorStop(0.00, '#e7cf9a');
-      g.addColorStop(0.22, '#f6e7c3');
-      g.addColorStop(0.45, '#cfae6d');
-      g.addColorStop(0.68, '#f3e2ba');
-      g.addColorStop(1.00, '#c9a55f');
+      g.addColorStop(0.00, '#8f4a58');
+      g.addColorStop(0.14, '#c07a7c');
+      g.addColorStop(0.30, '#e8ab9d');
+      g.addColorStop(0.43, '#fff1e6');   // sheen
+      g.addColorStop(0.50, '#ffe0cf');
+      g.addColorStop(0.62, '#d99183');
+      g.addColorStop(0.78, '#b06670');
+      g.addColorStop(0.92, '#d18e8c');
+      g.addColorStop(1.00, '#8c4653');
       ctx.fillStyle = g;
+      ctx.fillRect(0, 0, r.width, r.height);
+
+      // A soft radial lift in the middle so the disc looks domed, not printed.
+      const rg = ctx.createRadialGradient(r.width * 0.4, r.height * 0.34, 0,
+                                          r.width * 0.5, r.height * 0.5, r.width * 0.72);
+      rg.addColorStop(0, 'rgba(255,245,238,.55)');
+      rg.addColorStop(1, 'rgba(120,50,60,.16)');
+      ctx.fillStyle = rg;
       ctx.fillRect(0, 0, r.width, r.height);
 
       // A little grain so the foil doesn't read as flat vector fill.
       ctx.globalAlpha = 0.06;
       for (let i = 0; i < 900; i++) {
-        ctx.fillStyle = i % 2 ? '#fff' : '#8a6b2a';
+        ctx.fillStyle = i % 2 ? '#fff' : '#7a3540';
         ctx.fillRect(Math.random() * r.width, Math.random() * r.height, 1.6, 1.6);
       }
       ctx.globalAlpha = 1;
@@ -79,10 +93,22 @@
     function finish() {
       if (done) return;
       done = true;
+      // Fling the petal sparks outward on their own angles before the class
+      // that runs the animation lands.
+      const burst = wrap.querySelector('.scratch__burst');
+      if (burst) {
+        const sparks = burst.children, n = sparks.length;
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+          const d = 42 + Math.random() * 46;                 // % of the disc radius
+          const st = sparks[i].style;
+          st.setProperty('--dx', (Math.cos(a) * d).toFixed(1) + '%');
+          st.setProperty('--dy', (Math.sin(a) * d).toFixed(1) + '%');
+          st.setProperty('--r', (140 + Math.random() * 260).toFixed(0) + 'deg');
+          st.animationDelay = (Math.random() * 0.18).toFixed(2) + 's';
+        }
+      }
       wrap.classList.add('is-revealed');
-      // Confetti of petals on reveal — small, one-shot, purely decorative.
-      const burst = $('.scratch__burst');
-      if (burst) burst.classList.add('is-on');
     }
 
     function start(e) {
@@ -112,7 +138,7 @@
     addEventListener('pointercancel', end);
 
     // Keyboard / assistive path — nobody should be locked out by a rub gesture.
-    const skip = $('.scratch__skip');
+    const skip = document.querySelector('.scratch__skip');
     if (skip) skip.addEventListener('click', finish);
 
     new ResizeObserver(() => { if (!done) { sized = false; paintFoil(); } }).observe(wrap);
@@ -180,6 +206,71 @@
     btn.rel = 'noopener';
   })();
 
+  /* ----------------------------------------------------------------- music */
+  // Browsers refuse un-muted autoplay until the visitor has interacted with the
+  // page, and there is no way around that — so we ask once, and if we're
+  // refused we arm the very next gesture (a tap, a scroll, a key) to start it.
+  // The button always shows the true state, so nobody is left wondering.
+  (function music() {
+    const btn = $('.music');
+    if (!btn || !cfg.music) return;
+
+    const a = new Audio();
+    a.loop = true;
+    a.preload = 'auto';
+    a.volume = 0;
+    a.src = a.canPlayType('audio/mp4') ? cfg.music.src : cfg.music.srcFallback;
+
+    const TARGET = cfg.music.volume != null ? cfg.music.volume : 0.55;
+    let fade = null;
+
+    function rampTo(v, ms) {
+      clearInterval(fade);
+      const from = a.volume, steps = Math.max(1, Math.round(ms / 40));
+      let i = 0;
+      fade = setInterval(() => {
+        i++;
+        a.volume = Math.min(1, Math.max(0, from + (v - from) * (i / steps)));
+        if (i >= steps) { clearInterval(fade); if (v === 0) a.pause(); }
+      }, 40);
+    }
+
+    function paint(on) {
+      btn.setAttribute('aria-pressed', String(on));
+      btn.setAttribute('aria-label', on ? 'Mute music' : 'Play music');
+    }
+
+    function start() {
+      return a.play().then(() => { paint(true); rampTo(TARGET, 1400); return true; })
+                     .catch(() => { paint(false); return false; });
+    }
+
+    btn.addEventListener('click', () => {
+      if (a.paused) start();
+      else { paint(false); rampTo(0, 500); }
+    });
+
+    // Try immediately; if the browser says no, the first gesture starts it.
+    start().then((ok) => {
+      if (ok) return;
+      const arm = () => { if (a.paused) start(); off(); };
+      const off = () => {
+        removeEventListener('pointerdown', arm);
+        removeEventListener('keydown', arm);
+        removeEventListener('scroll', arm);
+      };
+      addEventListener('pointerdown', arm, { passive: true });
+      addEventListener('keydown', arm);
+      addEventListener('scroll', arm, { passive: true });
+    });
+
+    // Don't sing to an empty room.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && !a.paused) { a.pause(); btn.dataset.auto = '1'; }
+      else if (!document.hidden && btn.dataset.auto) { delete btn.dataset.auto; start(); }
+    });
+  })();
+
   /* ------------------------------------------------------------------ rsvp */
   (function rsvpForm() {
     const form = $('.rsvp__form');
@@ -187,15 +278,6 @@
     const done = $('.rsvp__done');
     const doneName = $('.rsvp__done-name');
     const btn = form.querySelector('button[type=submit]');
-    const guestsRow = $('.js-guests-row');
-
-    // "Regretfully no" shouldn't ask how many seats to hold.
-    form.addEventListener('change', (e) => {
-      if (e.target.name === 'attending') {
-        guestsRow.hidden = e.target.value === 'no';
-      }
-    });
-
     form.addEventListener('submit', (ev) => {
       ev.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());

@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Jost:wght@300;400;500&display=swap">
-<link rel="stylesheet" href="assets/css/site.css?v=1">
+<link rel="stylesheet" href="assets/css/site.css?v=3">
 
 <link rel="preload" as="image" href="assets/poster/c1.jpg">
 </head>
@@ -97,16 +97,22 @@
       <!-- 4 · save the date (scratch) -------------------------------------- -->
       <section class="copy" data-place="fill" aria-label="Save the date">
         <div class="scratch">
+          <span class="scratch__glow" aria-hidden="true"></span>
           <div class="scratch__prize">
             <p class="scratch__label">Save the Date</p>
             <p class="scratch__date">21 September<br>2026</p>
             <p class="scratch__day">Monday</p>
           </div>
           <canvas class="scratch__foil" role="img"
-                  aria-label="Gold foil covering the date — scratch it, or use the reveal button below"></canvas>
+                  aria-label="Rose-gold foil covering the date — scratch it, or use the reveal button below"></canvas>
           <p class="scratch__hint">Scratch to reveal</p>
-          <button class="scratch__skip" type="button">Reveal the date</button>
+          <span class="scratch__burst" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </span>
         </div>
+        <!-- sits clear of the medallion, in the open cloud below it -->
+        <button class="scratch__skip" type="button">Reveal the date</button>
       </section>
 
       <!-- 5 · the ceremony ------------------------------------------------- -->
@@ -164,14 +170,6 @@
               </div>
             </fieldset>
 
-            <div class="field js-guests-row">
-              <label for="rsvp-guests">Guests (including you)</label>
-              <select id="rsvp-guests" name="guests">
-                <option>1</option><option>2</option><option>3</option>
-                <option>4</option><option>5</option><option>6+</option>
-              </select>
-            </div>
-
             <div class="field">
               <label for="rsvp-msg">A note for the couple <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
               <textarea id="rsvp-msg" name="message" rows="2" placeholder="Your blessings…"></textarea>
@@ -190,11 +188,10 @@
 
       <!-- 8 · blessings ----------------------------------------------------- -->
       <section class="copy" data-place="center" aria-label="Blessings">
-        <div>
-          <img class="mark" src="assets/img/monogram.png" alt="" aria-hidden="true">
-          <p class="lede" style="margin-top:0">Your presence will make<br>our celebration complete</p>
-          <h2 class="display display--names" style="margin-top:1.2em">Dr. Shubhanu &amp; Dr. Shubhangi</h2>
-          <p class="hashtag" style="font-size:clamp(15px,2vh,22px);margin-top:1.1em">#ShubhMilan</p>
+        <div class="finale">
+          <p class="finale__line">Your presence will make<br>our celebration complete</p>
+          <h2 class="finale__names">Dr. Shubhanu<span>&amp;</span>Dr. Shubhangi</h2>
+          <p class="finale__tag">#ShubhMilan</p>
         </div>
       </section>
 
@@ -203,14 +200,26 @@
 </div><!-- /stagewrap -->
 
 <!-- chrome -->
+<button class="music" type="button" aria-pressed="false" aria-label="Play music" title="Kudmayi">
+  <span class="music__ring" aria-hidden="true"></span>
+  <svg class="music__on" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9.5h3.2L12 5.4v13.2L7.2 14.5H4z"/>
+    <path class="w1" d="M15.4 9.2a4 4 0 0 1 0 5.6"/>
+    <path class="w2" d="M17.9 6.6a7.6 7.6 0 0 1 0 10.8"/>
+  </svg>
+  <svg class="music__off" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9.5h3.2L12 5.4v13.2L7.2 14.5H4z"/>
+    <path d="M16 9.6l5 4.8M21 9.6l-5 4.8"/>
+  </svg>
+</button>
 <div class="progress" aria-hidden="true"><span class="progress__fill"></span></div>
 <nav class="rail" aria-label="Jump to a moment"></nav>
 
 <!-- the scroll track: the only element with real height -->
 <div class="track" aria-hidden="true"></div>
 
-<script src="assets/js/invite.config.js?v=1"></script>
-<script src="assets/js/scroll-film.js?v=1"></script>
-<script src="assets/js/interactions.js?v=1"></script>
+<script src="assets/js/invite.config.js?v=3"></script>
+<script src="assets/js/scroll-film.js?v=3"></script>
+<script src="assets/js/interactions.js?v=3"></script>
 </body>
 </html>

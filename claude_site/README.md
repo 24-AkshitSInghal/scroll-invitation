@@ -35,7 +35,7 @@ rsvp: {
 }
 ```
 
-The payload is `{ name, attending, guests, message, submittedAt }`.
+The payload is `{ name, attending, message, submittedAt }`.
 
 ---
 
@@ -46,20 +46,26 @@ The payload is `{ name, attending, guests, message, submittedAt }`.
 | 1 | c1 | Monogram opening | Greeting on landing; `#ShubhMilan` appears as the monogram finishes drawing (~88% in) |
 | 2 | c2 | The couple | Names inside the floral arch |
 | 3 | c3 | Families | Both sets of parents |
-| 4 | c4 | Save the date | **Scratch card** — a gold-foil canvas over the medallion |
+| 4 | c4 | Save the date | **Scratch card** — rose-gold foil over the medallion, with a bloom + petal burst on reveal |
 | 5 | c5 | Ceremony | Live countdown + Add to calendar (`.ics`) |
 | 6 | c6 | Venue | Address + Open map |
-| 7 | c7 | RSVP | **Form** on the silk panel |
-| 8 | c8 | Blessings | Monogram, closing line, hashtag |
+| 7 | c7 | RSVP | **Form** on the silk panel, held to 58% of the picture so both birds stay visible |
+| 8 | c8 | Blessings | Closing line, names, hashtag |
 
 ### Pacing knobs (per section, in `invite.config.js`)
 
 - **`scroll`** — viewport-heights of scroll the scene occupies. Bigger = slower.
 - **`settle`** — `0..1`. The clip reaches its **final frame** at this point in the
-  band and holds there for the rest of it. This is what makes the interactive
-  scenes work: scene 4 settles at `0.42` and scene 7 at `0.38`, so the medallion
-  and the silk panel are locked perfectly still while someone is scratching or
-  typing. Leave it at `1` for a scene that should keep moving the whole way.
+  band and comes to a genuine **rest** there. Only for scenes meant to stop:
+  the logo hold (1), the scratch card (4), the RSVP panel (7) and the finale (8).
+  Scenes 4 and 7 settle early — `0.42` and `0.38` — so the medallion and the silk
+  panel are locked perfectly still while someone is scratching or typing.
+- **`linger`** — `0..0.6`. The alternative to stopping: it slows the camera
+  through the middle of the scene, where the copy peaks, and lets it run at full
+  speed into the seam. `f(0)=0` and `f(1)=1` are preserved exactly, so the frames
+  either side of a join are still the ones the clips were chained on. The four
+  transit scenes (2, 3, 5, 6) use this — a `settle` hold mid-flight reads as the
+  camera stalling, which is what made the earlier joins feel like cuts.
 - **`copy`** — `[fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd]` in local
   `0..1`. Individual elements can carry their own `data-fade="i0,i1,o0,o1"` to
   hand off within one scene (scene 1 uses this).
@@ -114,24 +120,47 @@ from the source clips:
 ./tools/encode.sh ../flowers_cloud_bird/clips
 ```
 
-Settings and why: native 1080×1920 at `crf 20` with a **small GOP (`-g 8`)**.
-Seek cost is dominated by how many frames sit between the target and the previous
-keyframe, so a short GOP scrubs smoothly — while all-intra would balloon an 8s
-clip to ~25 MB for no visible gain, since Blob playback already guarantees
-seekability. Mobile variants are 720 wide, `-g 4`, `crf 23`.
+**Both tiers are native 1080×1920 — full HD on every device.** The source clips
+run about 5–7 Mbps, so there is nothing above `crf ~19` left to recover; the two
+tiers differ in bitrate and GOP, not resolution. Seek cost is dominated by how
+many frames sit between the target and the previous keyframe, so the phone tier
+uses a tighter GOP (`-g 4`) — while all-intra would balloon an 8s clip to ~25 MB
+for no visible gain, since Blob playback already guarantees seekability.
 
-**Current weight: 61 MB desktop, 34 MB mobile** across all eight clips. Nothing
+**Current weight: 68 MB desktop, 53 MB mobile** across all eight clips. Nothing
 loads up front — the engine fetches only what is within ~1.5 screens of the
-viewport, so landing on the page costs one clip (~5 MB on mobile). If you'd
-rather trade sharpness for data, change the mobile line in `tools/encode.sh` to
-`scale=640:-2` and `-crf 26` and re-run: that's about 24 MB, roughly 30% lighter.
+viewport, so landing on the page costs one clip (~7 MB). If you'd rather trade
+sharpness for data on phones, change the second ffmpeg line in `tools/encode.sh`
+to `scale=720:-2` with `-crf 24`: that halves the mobile tier to ~26 MB.
 
 ---
 
+## Music
+
+`Kudmayi` is already trimmed to start at **0:10** of the original and faded at
+both ends, so `loop` doesn't click on the wrap — the whole file is the loop.
+Swap it in `music` in `invite.config.js`; `tools/` has no audio step, the file was
+made with:
+
+```bash
+ffmpeg -ss 10 -t 150 -i song.webm -vn \
+  -af "afade=t=in:st=0:d=1.2,afade=t=out:st=148.2:d=1.8,loudnorm=I=-18:TP=-1.5:LRA=11" \
+  -c:a aac -b:a 128k -movflags +faststart assets/audio/kudmayi.m4a
+```
+
+The toggle sits top-right. **Browsers refuse un-muted autoplay until the visitor
+has interacted with the page and there is no way around that** — so the player
+asks once on load, and if it is refused it arms the very next gesture (tap,
+scroll or key) to start. The button always shows the true state, so nobody is
+left wondering whether music is meant to be playing. It also pauses when the tab
+is hidden and resumes when it comes back.
+
 ## Accessibility & graceful degradation
 
-- The scratch card has a **"Reveal the date"** button — nobody is locked behind a
-  rub gesture.
+- The scratch card has a **"Reveal the date"** button, parked in the open cloud
+  below the medallion — nobody is locked behind a rub gesture.
+- Music never starts without a gesture in browsers that require one, and it is
+  never the only channel for anything.
 - `prefers-reduced-motion`: no video is fetched at all. The posters stay up and
   cross-dissolve, which is also the cheapest possible path on a weak device.
 - If a clip fails to load, its poster carries the scene. Because each poster is
