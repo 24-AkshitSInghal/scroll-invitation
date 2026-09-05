@@ -1,7 +1,7 @@
 # ShubhMilan — scroll invitation
 
 An Apple-style scroll-scrubbed invitation. The eight rendered clips form **one
-continuous camera flight**; scroll doesn't animate anything, it sets the video's
+continuous camera flight** across ten scenes; scroll doesn't animate anything, it sets the video's
 `currentTime`. Because each clip was generated starting from the previous clip's
 actual last frame, the joins are frame-identical and the flight reads as a single
 unbroken shot.
@@ -19,7 +19,8 @@ Then open <http://localhost:4173>.
 ## Editing the content
 
 Almost everything is in **`assets/js/invite.config.js`** — names, date, venue,
-map query, RSVP settings, and the pacing of each scene. The wording that sits on
+map query, hosts and their phone numbers, RSVP settings, and the pacing of each
+scene. The wording that sits on
 screen is in `index.html`, one `<section class="copy">` per scene, in order.
 
 ### Turning on the RSVP
@@ -45,12 +46,14 @@ The payload is `{ name, attending, message, submittedAt }`.
 |---|------|-------|-------|
 | 1 | c1 | Monogram opening | **Auto-flies itself** on load; `#ShubhMilan` appears as the monogram finishes drawing |
 | 2 | c2 | The couple | Names inside the floral arch |
-| 3 | c3 | Families | Both sets of parents |
-| 4 | c4 | Save the date | **Scratch card** — antique-gold foil filling the medallion (73.5% of picture width, 1px inside the ring), with a gold bloom + petal burst on reveal |
-| 5 | c5 | Ceremony | Live countdown + Add to calendar (`.ics`) |
-| 6 | c6 | Venue | Address + Open map |
-| 7 | c7 | RSVP | **Form** on the silk panel, held to 58% of the picture so both birds stay visible |
-| 8 | c8 | Blessings | Closing line, names, hashtag |
+| 3 | — | The two of us | The couple's photograph, arch-framed inside the wreath. **No clip of its own** — holds clip 2's final frame (`poster/c2b.jpg`) |
+| 4 | c3 | Families | Both sets of parents |
+| 5 | c4 | Save the date | **Scratch card** — antique-gold foil filling the medallion (73.5% of picture width, 1px inside the ring), with a gold bloom + petal burst on reveal |
+| 6 | c5 | Ceremony | Live countdown + Add to calendar (`.ics`) |
+| 7 | c6 | Venue | Address + Open map |
+| 8 | c7 | RSVP | **Form** on the silk panel, held to 58% of the picture so both birds stay visible |
+| 9 | c8 | Blessings | Closing line, names, hashtag |
+| 10 | — | With love | Hosts + tap-to-call numbers. **No clip of its own**: the camera has already come to rest, so this scene holds clip 8's final frame as a still (`poster/c9.jpg`) and the card settles onto it. Same picture across the seam, so nothing moves. |
 
 ### Pacing knobs (per section, in `invite.config.js`)
 
@@ -72,6 +75,23 @@ The payload is `{ name, attending, message, submittedAt }`.
 
   A ramp that begins at `0` is still *invisible* at `0` — that's why the opening
   scene's ramps start slightly negative.
+
+### A scene with no clip
+
+Sections 3 and 10 set `clip: null`. `loadClip()` skips those entirely, so nothing is
+fetched and the poster carries the scene — and because that poster is the frame
+the previous clip ends on, the join is invisible without a second copy of the
+video. Use the same trick for any further closing panels: extract the last frame,
+point `poster` at it, leave `clip` null. It costs one JPEG instead of a second
+copy of a video, and because clip 3 was itself chained from clip 2's last frame,
+dropping a still scene in between leaves the flight continuous on both sides.
+
+### Swapping the photograph
+
+`assets/img/couple.jpg` (760×1188). Replace it and keep a portrait aspect —
+`.portrait` is arch-topped and sized to 54% of the picture width, which lands it
+inside the wreath clip 2 rests on. An oval would crop the lehenga and the feet,
+which is why it isn't one.
 
 ### Type
 

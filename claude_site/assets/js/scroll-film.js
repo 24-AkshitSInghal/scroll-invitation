@@ -102,7 +102,7 @@
   function loadClip(sc) {
     // Under reduced motion we never fetch video at all: the posters stay up and
     // simply cross-dissolve. No decode cost, no scrubbed motion.
-    if (reduce || sc.loading) return;
+    if (reduce || sc.loading || !sc.cfg.clip) return;
     sc.loading = true;
     const url = (isMobile() && sc.cfg.clipMobile) ? sc.cfg.clipMobile : sc.cfg.clip;
 

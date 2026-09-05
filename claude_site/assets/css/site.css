@@ -27,6 +27,7 @@
 
   --stage-radius: 6px;
   --ease: cubic-bezier(.22,.61,.36,1);
+  --phone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1l-2.3 2.2z'/%3E%3C/svg%3E");
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -212,6 +213,38 @@ img { max-width: 100%; display: block; }
 }
 .meta strong { font-weight: 500; color: var(--ink); letter-spacing: .04em; }
 
+/* -- the portrait (scene 3) ------------------------------------------------ */
+/* Sits inside the floral wreath clip 2 comes to rest on — the opening measures
+   roughly 20%–80% across and 12%–62% down. An arch-topped frame suits a
+   full-length portrait far better than an oval, which would crop the lehenga
+   and the feet. Positioned in video space so it stays on the wreath when the
+   stage crops the film on a phone. */
+.portrait {
+  position: absolute;
+  left: calc(var(--vx, 0px) + 0.50 * var(--vw, 100%));
+  top:  calc(var(--vy, 0px) + 0.370 * var(--vh, 100%));
+  transform: translate(-50%, -50%);
+  width: calc(0.54 * var(--vw, 100%));
+  margin: 0;
+}
+.portrait img {
+  display: block; width: 100%; height: auto;
+  border-radius: 50% 50% 6px 6px / 26% 26% 3px 3px;
+  box-shadow:
+    0 0 0 1px rgba(184,147,76,.55),
+    0 0 0 7px rgba(255,250,242,.72),
+    0 0 0 8px rgba(184,147,76,.30),
+    0 18px 40px -18px rgba(90,66,34,.55);
+}
+.portrait figcaption {
+  margin-top: 1.5em;
+  font-family: var(--font-display); font-style: italic;
+  font-size: clamp(15px, 2.1vh, 24px); line-height: 1.2;
+  color: var(--ink);
+  text-shadow: 0 1px 2px rgba(255,250,242,.95), 0 0 14px rgba(255,250,242,.8);
+}
+.portrait figcaption span { color: var(--gold); margin: 0 .18em; }
+
 /* -- families ------------------------------------------------------------- */
 .families {
   display: grid; gap: 2.2vh; margin-top: 2.4vh;
@@ -331,9 +364,9 @@ img { max-width: 100%; display: block; }
   position: absolute; left: 50%; bottom: 13%; z-index: 4;
   transform: translateX(-50%);
   text-align: center; white-space: nowrap;
-  font-size: clamp(12px, 1.75vh, 17px); font-weight: 500;
-  letter-spacing: .3em; text-transform: uppercase;
-  color: #4a3410; text-shadow: 0 1px 0 rgba(255,247,222,.85);
+  font-size: clamp(12px, 1.75vh, 17px); font-weight: 300;
+  letter-spacing: .32em; text-transform: uppercase;
+  color: #6b4a12; text-shadow: 0 1px 1px rgba(255,248,224,.7);
   animation: pulse 2.4s ease-in-out infinite;
   transition: opacity .4s;
 }
@@ -547,6 +580,60 @@ img { max-width: 100%; display: block; }
   content: ''; display: block; width: 46px; height: 1px; margin: 0 auto 1em;
   background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
 }
+
+/* -- the hosts (scene 9) --------------------------------------------------- */
+/* Rests on clip 8's final frame. Quiet and centred: this is the last thing
+   anyone reads, and the two numbers have to be tappable on a phone. */
+.hosts__line {
+  margin: 0;
+  font-family: var(--font-display); font-style: italic;
+  font-size: clamp(19px, 2.9vh, 34px); line-height: 1.3;
+  color: var(--ink);
+}
+.hosts__rule {
+  display: block; width: 54px; height: 1px; margin: 1.8em auto;
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
+}
+.hosts__eyebrow {
+  margin: 0 0 1em;
+  font-size: clamp(9px, 1.15vh, 11.5px);
+  letter-spacing: .38em; text-transform: uppercase;
+  font-weight: 500; color: var(--gold-deep);
+}
+.hosts__family {
+  margin: 0;
+  font-family: var(--font-display); font-weight: 500; font-style: italic;
+  font-size: clamp(27px, 4.2vh, 48px); line-height: 1.1;
+  color: var(--ink);
+}
+.hosts__calls {
+  margin: 1.6em 0 0;
+  display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+}
+.hosts__calls a {
+  display: inline-flex; align-items: center; gap: .5em;
+  padding: .78em 1.35em; border-radius: 999px;
+  font-size: clamp(12px, 1.6vh, 15px); letter-spacing: .09em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink); text-decoration: none;
+  background: rgba(255,250,242,.74);
+  box-shadow: inset 0 0 0 1px rgba(184,147,76,.42);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease), background .25s;
+}
+/* a small handset, so the numbers read as "call us" without a word of label */
+.hosts__calls a::before {
+  content: ''; width: 12px; height: 12px; flex: 0 0 auto;
+  background: currentColor; opacity: .62;
+  -webkit-mask: var(--phone) center/contain no-repeat;
+          mask: var(--phone) center/contain no-repeat;
+}
+.hosts__calls a:hover {
+  transform: translateY(-2px);
+  background: rgba(255,250,242,.92);
+  box-shadow: inset 0 0 0 1px var(--gold), 0 6px 16px -8px rgba(146,110,44,.5);
+}
+.hosts__calls a:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
 
 /* -- chrome: progress + rail ---------------------------------------------- */
 .progress {

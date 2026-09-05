@@ -36,30 +36,30 @@
       // Antique gold with a bright sheen band raking across it, so it reads as
       // struck foil rather than a flat swatch.
       const g = ctx.createLinearGradient(0, 0, r.width, r.height);
-      g.addColorStop(0.00, '#75510f');
-      g.addColorStop(0.13, '#a87f2c');
-      g.addColorStop(0.29, '#d9b862');
-      g.addColorStop(0.42, '#fdf3d2');   // sheen
-      g.addColorStop(0.50, '#efdb9a');
-      g.addColorStop(0.62, '#c69c46');
-      g.addColorStop(0.78, '#8f6a14');
-      g.addColorStop(0.92, '#cda94f');
-      g.addColorStop(1.00, '#6e4b0d');
+      g.addColorStop(0.00, '#c2a154');
+      g.addColorStop(0.13, '#dcbe76');
+      g.addColorStop(0.29, '#f0dda6');
+      g.addColorStop(0.42, '#fffcef');   // sheen
+      g.addColorStop(0.50, '#fbf1d2');
+      g.addColorStop(0.62, '#ead9a4');
+      g.addColorStop(0.78, '#cfae66');
+      g.addColorStop(0.92, '#eedaa8');
+      g.addColorStop(1.00, '#bd9a4c');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, r.width, r.height);
 
       // A soft radial lift in the middle so the disc looks domed, not printed.
       const rg = ctx.createRadialGradient(r.width * 0.4, r.height * 0.34, 0,
                                           r.width * 0.5, r.height * 0.5, r.width * 0.72);
-      rg.addColorStop(0, 'rgba(255,248,214,.30)');
-      rg.addColorStop(1, 'rgba(74,50,4,.34)');
+      rg.addColorStop(0, 'rgba(255,253,240,.36)');
+      rg.addColorStop(1, 'rgba(150,116,42,.20)');
       ctx.fillStyle = rg;
       ctx.fillRect(0, 0, r.width, r.height);
 
       // A little grain so the foil doesn't read as flat vector fill.
       ctx.globalAlpha = 0.06;
       for (let i = 0; i < 900; i++) {
-        ctx.fillStyle = i % 2 ? '#fff' : '#7a5a1c';
+        ctx.fillStyle = i % 2 ? '#fff' : '#a8853a';
         ctx.fillRect(Math.random() * r.width, Math.random() * r.height, 1.6, 1.6);
       }
       ctx.globalAlpha = 1;

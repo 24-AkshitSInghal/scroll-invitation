@@ -61,6 +61,14 @@ window.INVITE = {
     whatsapp: null,                    // e.g. '919876543210' — adds a WhatsApp fallback
   },
 
+  /* -- hosts ----------------------------------------------------------------- */
+  hosts: {
+    line: 'With love & blessings',
+    eyebrow: 'Heartily welcome by',
+    family: 'Tayal Family',
+    phones: ['9557723663', '7900970001'],
+  },
+
   /* -- music ---------------------------------------------------------------- */
   /* Already trimmed to start at 0:10 of the original and faded at both ends so
      `loop` doesn't click on the wrap. Browsers block un-muted autoplay, so the
@@ -91,6 +99,16 @@ window.INVITE = {
       poster: 'assets/poster/c2.jpg',
       scroll: 1.7, settle: 1, linger: 0.35, copy: [0.42, 0.60, 0.92, 1],
       place: 'center',
+    },
+    {
+      /* Clipless, like the closing card: clip 2 has come to rest on its floral
+         wreath, so this scene holds that frame and the portrait settles into the
+         wreath's opening. Clip 3 was chained from this same frame, so the flight
+         picks straight back up afterwards. */
+      id: 'portrait', label: 'The Two of Us', kind: 'portrait',
+      clip: null, poster: 'assets/poster/c2b.jpg',
+      scroll: 1.7, settle: 1, copy: [0.16, 0.38, 0.88, 0.99],
+      place: 'fill',
     },
     {
       id: 'family', label: 'Our Families', kind: 'family',
@@ -131,7 +149,16 @@ window.INVITE = {
       id: 'blessing', label: 'Blessings', kind: 'finale',
       clip: 'assets/video/c8.mp4', clipMobile: 'assets/video/c8-m.mp4',
       poster: 'assets/poster/c8.jpg',
-      scroll: 2.0, settle: 0.72, copy: [0.44, 0.62, 1, 1],
+      scroll: 2.0, settle: 0.72, copy: [0.40, 0.56, 0.86, 0.98],
+      place: 'center',
+    },
+    {
+      /* No clip of its own: the camera has already come to rest on clip 8's last
+         frame, so this scene holds that exact frame as a still and the closing
+         card settles onto it. Same picture across the seam, so nothing moves. */
+      id: 'hosts', label: 'With Love', kind: 'hosts',
+      clip: null, poster: 'assets/poster/c9.jpg',
+      scroll: 1.7, settle: 1, copy: [0.16, 0.38, 1, 1],
       place: 'center',
     },
   ],
