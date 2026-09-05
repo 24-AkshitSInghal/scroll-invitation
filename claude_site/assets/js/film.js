@@ -115,8 +115,10 @@ window.Film = (function () {
     if (w === this.w && h === this.h) return;
     this.canvas.width = this.w = w;
     this.canvas.height = this.h = h;
-    this.canvas.style.width = cssW + 'px';
-    this.canvas.style.height = cssH + 'px';
+    // No inline CSS size: `.film` is inset:0 on the stage, so the canvas always
+    // covers whatever the stage currently is. Pinning it in pixels here meant
+    // that when a phone's URL bar collapsed and the viewport grew, the canvas
+    // stayed at its old height and left a bare strip along the bottom.
   };
 
   /* Draw one frame with `cover` geometry — the same crop the video had, so the

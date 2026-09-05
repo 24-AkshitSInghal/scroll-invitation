@@ -149,6 +149,15 @@
     renderer.resize(sw, sh);
   }
 
+  /* Split deliberately. `measure` is everything safe to redo at any moment — the
+     canvas backing store and the video-space anchors. `layout` additionally
+     rebuilds the scroll bands, which moves where every scene begins and so
+     yanks the reader's position; that must only happen on a real width change. */
+  function measure() {
+    mapVideoSpace();
+    read();
+  }
+
   function layout() {
     vh = innerHeight;
     laidOutW = innerWidth;
@@ -269,10 +278,20 @@
   // there rebuilds the track height and yanks the scroll position, so on touch we
   // only relayout when the width actually changed (rotation still arrives via
   // orientationchange).
+  /* A phone fires `resize` every time the URL bar slides away, and the viewport
+     genuinely grows by ~80px when it does. Rebuilding the bands there would jump
+     the page mid-scroll, but ignoring it outright — which is what this used to do
+     — left the canvas at its old height and a bare strip along the bottom. So:
+     re-measure always, re-lay-out only when the width actually changed. */
   addEventListener('resize', () => {
-    if (coarse && innerWidth === laidOutW) return;
-    layout();
+    if (innerWidth !== laidOutW) layout();
+    else measure();
   });
+  // The reliable signal for the URL bar on iOS; `resize` is not always fired.
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', measure);
+    visualViewport.addEventListener('scroll', measure);
+  }
   addEventListener('orientationchange', () => setTimeout(layout, 120));
   addEventListener('load', layout);
 

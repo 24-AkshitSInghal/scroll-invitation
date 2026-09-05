@@ -214,6 +214,34 @@ that is — a fast flick degrades to a slightly stale frame rather than a stall.
 Regenerate with `tools/frames.sh`; `N=72 ./tools/frames.sh` for a finer sequence
 at proportionally more bytes.
 
+### The phone's URL bar
+
+A phone browser shows its URL bar and tab strip on load and slides them away on
+the first scroll — the visible viewport grows by roughly 80px, mid-scroll, with
+no reload. Two things have to be true through that, and they pull in opposite
+directions:
+
+- **The film must fill whatever is now visible.** The canvas used to carry an
+  inline pixel height set at load, so when the viewport grew it stayed short and
+  left a bare cream strip along the bottom. It has no inline size now: `.film` is
+  `inset: 0` on the stage, the stage is `100%` of a `position: fixed; inset: 0`
+  wrapper — which *is* the visible viewport, more reliably than `dvh` — and only
+  the backing store is resized in JS.
+- **The reader must not be moved.** Rebuilding the scroll bands changes where
+  every scene starts, which yanks the page mid-scroll. So the resize path is
+  split: `measure()` (canvas + video-space anchors) runs on any resize, and the
+  full `layout()` only when the width actually changes. `visualViewport`'s own
+  resize/scroll events are listened to as well, because iOS does not always fire
+  a plain `resize` for the bar.
+
+Verified by growing 760px -> 850px mid-scene: the canvas follows to the pixel and
+the scroll position, active scene and frame index are all unchanged.
+
+`theme-color` is declared for both colour schemes so Safari tints its chrome to
+the invitation's ivory rather than falling back to dark grey on a phone in dark
+mode, and `<html>` carries the same ivory so an overscroll bounce never exposes
+white.
+
 ### It behaves like a card, not a document
 
 `user-select: none` and `-webkit-touch-callout: none` on `<html>`, so dragging
