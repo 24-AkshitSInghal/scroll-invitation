@@ -126,7 +126,34 @@
   }
 
   /* -- scroll read (layout + opacity, cheap) -------------------------------- */
-  let ticking = false, activeIndex = -1;
+  let activeIndex = -1;
+
+  /* The playhead. Frames are indexed straight off scroll position, so a hard
+     flick used to jump the index by dozens of frames at once and read as a cut —
+     the camera appearing somewhere new rather than travelling there.
+     `viewY` chases the real scroll instead of matching it, and every scene
+     derives from `viewY`: frame, opacity, copy fade, parallax. A flick becomes a
+     fast fly-through of the actual film instead of a teleport.
+
+     The per-frame step is capped so the film cannot advance faster than the eye
+     can follow — about 2 film-frames per rendered frame at the floor — and the
+     cap widens with distance so a rail jump across the whole invitation still
+     arrives in well under a second rather than crawling. */
+  let viewY = 0, settled = true;
+
+  function advance() {
+    const y = scrollY || pageYOffset;
+    if (reduce) { viewY = y; return true; }           // no extra motion
+    const d = y - viewY;
+    const ad = Math.abs(d);
+    if (ad < 0.6) { viewY = y; return true; }         // arrived
+    const far = Math.min(12, ad / (vh || 800));
+    const cap = (vh || 800) * (0.055 + 0.02 * far);
+    let step = d * 0.16;
+    if (step > cap) step = cap; else if (step < -cap) step = -cap;
+    viewY += step;
+    return false;
+  }
 
   /* The clips are 1080×1920 and the scenes are `object-fit: cover`, so on a tall
      phone the film is cropped at the sides and a percentage of the STAGE is no
@@ -173,7 +200,7 @@
   }
 
   function layout() {
-    vh = innerHeight;
+    vh = viewportH();
     laidOutW = innerWidth;
     mapVideoSpace();
     let off = 0;
@@ -185,7 +212,7 @@
   }
 
   function read() {
-    const y = scrollY || pageYOffset;
+    const y = viewY;
     const fade = (cfg.crossfade || 0.1) * vh;
     const mobile = isMobile();
 
@@ -261,7 +288,6 @@
 
     progress.style.transform = 'scaleY(' + clamp(y / (total * vh)) + ')';
     document.documentElement.classList.toggle('is-scrolled', y > vh * 0.35);
-    ticking = false;
   }
 
   /* -- render loop ---------------------------------------------------------- */
@@ -270,6 +296,11 @@
     // the viewport height is free (no layout), so just check it every frame and
     // re-measure when it moves — the picture can never fall out of step.
     if (viewportH() !== appliedH) measure();
+
+    // Advance the playhead toward the scroll position and re-read only while it
+    // is actually moving; once settled this costs one subtraction per frame.
+    const arrived = advance();
+    if (!arrived || !settled) { read(); settled = arrived; }
 
     // Composite the visible scenes the way stacked opacity layers would: the
     // faintest as the base, the rest blended over it. Across a seam both sides
@@ -289,9 +320,7 @@
   }
 
   /* -- wiring --------------------------------------------------------------- */
-  addEventListener('scroll', () => {
-    if (!ticking) { ticking = true; requestAnimationFrame(read); }
-  }, { passive: true });
+  addEventListener('scroll', () => { settled = false; }, { passive: true });
 
   // Mobile browsers fire `resize` whenever the URL bar slides. Re-running layout
   // there rebuilds the track height and yanks the scroll position, so on touch we
@@ -314,11 +343,13 @@
   addEventListener('orientationchange', () => setTimeout(layout, 120));
   addEventListener('load', layout);
 
-  // rAF stops while the tab is hidden, which leaves `ticking` latched and the
-  // clips parked on a stale frame. Clear the latch and re-read on return.
+  // rAF stops while the tab is hidden, so the playhead is wherever it was left.
+  // Snap it to the real scroll position on return rather than flying the film
+  // through everything the visitor scrolled past while looking elsewhere.
   addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
-    ticking = false;
+    viewY = scrollY || pageYOffset;
+    settled = false;
     read();
   });
 

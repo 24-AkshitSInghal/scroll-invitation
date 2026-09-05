@@ -257,6 +257,34 @@ keeping vertical scroll, and `interactions.js` cancels Safari's own
 It is a deliberate accessibility trade-off; undo it by removing that block and
 `maximum-scale=1` if you would rather people could zoom.
 
+### The damped playhead
+
+Frames were indexed straight off scroll position, so a hard flick jumped the
+index by dozens of frames at once and read as a cut — the camera appearing
+somewhere new rather than travelling there.
+
+`viewY` now *chases* the scroll rather than matching it, and every scene derives
+from it: frame index, opacity, copy fade, parallax. A flick becomes a fast
+fly-through of the actual film. The per-frame step is capped so the picture
+cannot advance faster than the eye can follow, and the cap widens with distance
+so a rail jump across the whole invitation still arrives promptly instead of
+crawling:
+
+| gesture | rendered frames | time @60fps | distinct film frames shown |
+|---|---|---|---|
+| flick one scene | 51 | 0.85s | 25 of 56 |
+| flick three scenes | 87 | 1.45s | 39 |
+| rail jump to the end | 137 | 2.28s | 65 |
+
+Two details worth keeping: the loop re-reads only while the playhead is moving
+(once settled it costs one subtraction per frame), and on `visibilitychange` the
+playhead **snaps** to the real scroll position rather than flying through
+everything the visitor scrolled past while looking elsewhere.
+
+Tune it in `advance()`: `0.16` is the follow rate, `0.055` the floor on the
+per-frame step (as a fraction of viewport height) and `0.02` how fast the cap
+widens with distance. `prefers-reduced-motion` bypasses the whole thing.
+
 ### No opening auto-scroll
 
 The film used to fly its first scene on load. It doesn't any more: the landing
