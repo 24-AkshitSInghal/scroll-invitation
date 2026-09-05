@@ -152,6 +152,11 @@ img { max-width: 100%; display: block; }
   background: radial-gradient(70% 46% at 50% 50%, rgba(255,250,242,.88) 0%, rgba(255,250,242,.66) 42%, rgba(255,250,242,.18) 72%, rgba(255,250,242,0) 100%);
 }
 
+/* Parallax layers. --par is written by the engine each frame; elements that
+   already use transform for their own positioning fold it into that transform
+   themselves (see .portrait) so the two never clobber each other. */
+[data-par] { transform: translate3d(0, var(--par, 0px), 0); will-change: transform; }
+
 /* Two lines of copy sharing one spot, cross-fading in place. */
 .stack { display: grid; }
 .stack > * { grid-area: 1 / 1; align-self: end; }
@@ -230,8 +235,13 @@ img { max-width: 100%; display: block; }
   position: absolute;
   left: calc(var(--vx, 0px) + 0.505 * var(--vw, 100%));
   top:  calc(var(--vy, 0px) + 0.422 * var(--vh, 100%));
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, calc(-50% + var(--par, 0px))) scale(var(--par-scale, 1));
+  /* scale about the bottom edge: that edge is the binding constraint against the
+     wreath's lower flowers, so let the breathing happen upward into the roomier
+     top margin instead of pushing down into them */
+  transform-origin: 50% 100%;
   width: calc(0.47 * var(--vw, 100%));
+  will-change: transform;
   margin: 0;
 }
 .portrait img {
@@ -248,7 +258,8 @@ img { max-width: 100%; display: block; }
   position: absolute;
   left: calc(var(--vx, 0px) + 0.50 * var(--vw, 100%));
   top:  calc(var(--vy, 0px) + 0.800 * var(--vh, 100%));
-  transform: translateX(-50%);
+  transform: translate(-50%, var(--par, 0px));
+  will-change: transform;
   margin: 0; white-space: nowrap;
   font-family: var(--font-tag);
   font-style: italic; font-weight: 500;
@@ -343,8 +354,8 @@ img { max-width: 100%; display: block; }
 .scratch__glow {
   position: absolute; inset: -14%;
   border-radius: 50%; pointer-events: none; z-index: 0;
-  background: radial-gradient(circle, rgba(255,244,214,.95) 0%, rgba(240,214,150,.6) 36%,
-              rgba(184,147,76,.22) 62%, transparent 76%);
+  background: radial-gradient(circle, rgba(255,250,242,.95) 0%, rgba(231,207,154,.62) 36%,
+              rgba(184,147,76,.24) 62%, transparent 76%);
   opacity: 0; transform: scale(.55);
 }
 .scratch.is-revealed .scratch__glow { animation: bloom 1.5s var(--ease) forwards; }
@@ -381,7 +392,7 @@ img { max-width: 100%; display: block; }
   text-align: center; white-space: nowrap;
   font-size: clamp(12px, 1.75vh, 17px); font-weight: 300;
   letter-spacing: .32em; text-transform: uppercase;
-  color: #6b4a12; text-shadow: 0 1px 1px rgba(255,248,224,.7);
+  color: var(--ink-soft); text-shadow: 0 1px 1px rgba(255,250,242,.8);
   animation: pulse 2.4s ease-in-out infinite;
   transition: opacity .4s;
 }
@@ -395,8 +406,8 @@ img { max-width: 100%; display: block; }
   position: absolute; left: 50%; top: 50%;
   width: 7px; height: 7px; margin: -3.5px;
   border-radius: 60% 40% 55% 45%;
-  background: linear-gradient(140deg, #fbeec2, var(--gold));
-  box-shadow: 0 0 6px rgba(212,175,95,.75);
+  background: linear-gradient(140deg, var(--gold-bright), var(--gold));
+  box-shadow: 0 0 6px rgba(217,189,133,.8);
   opacity: 0;
 }
 .scratch.is-revealed .scratch__burst i { animation: spark 1.5s var(--ease) forwards; }
@@ -428,8 +439,8 @@ img { max-width: 100%; display: block; }
   to   { opacity: 1; transform: none; }
 }
 @keyframes glow {
-  0%,100% { text-shadow: 0 0 14px rgba(255,240,200,.85), 0 0 36px rgba(198,158,72,.35); }
-  50%     { text-shadow: 0 0 24px rgba(255,246,214,1),   0 0 60px rgba(198,158,72,.6); }
+  0%,100% { text-shadow: 0 0 14px rgba(231,207,154,.85), 0 0 36px rgba(184,147,76,.35); }
+  50%     { text-shadow: 0 0 24px rgba(255,250,242,1),    0 0 60px rgba(184,147,76,.60); }
 }
 
 /* the assistive reveal: a gold pill, sitting clear of the medallion in the

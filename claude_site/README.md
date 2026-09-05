@@ -69,12 +69,57 @@ The payload is `{ name, attending, message, submittedAt }`.
   either side of a join are still the ones the clips were chained on. The four
   transit scenes (2, 3, 5, 6) use this — a `settle` hold mid-flight reads as the
   camera stalling, which is what made the earlier joins feel like cuts.
+- **`parallax`** — viewport-heights the scene's copy drifts as you pass through
+  it, centred on mid-scene so it rises through the frame rather than starting or
+  ending displaced. **The film itself is never transformed** — doing so would
+  break the seams and pull the video-space anchors off their artwork — so all
+  depth comes from the overlays moving at their own rate against it.
+- **`anchored`** — `true` for the three scenes whose overlay sits on painted
+  artwork: the scratch medallion, the RSVP silk panel and the portrait frame.
+  It suppresses the entrance rise as well as the parallax. This matters more than
+  it looks: the entrance offset alone was displacing the scratch card and the
+  RSVP panel by up to 13.5px while they faded in — already inside the window
+  where they accept a scratch or a tap.
 - **`copy`** — `[fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd]` in local
   `0..1`. Individual elements can carry their own `data-fade="i0,i1,o0,o1"` to
   hand off within one scene (scene 1 uses this).
 
   A ramp that begins at `0` is still *invisible* at `0` — that's why the opening
   scene's ramps start slightly negative.
+
+### The scratch foil
+
+The foil is painted from the page's own gold ramp read off the CSS custom
+properties at paint time — `--gold-deep` → `--gold` → `--gold-soft` →
+`--gold-bright`, with `--cream` as the sheen raking across the middle — rather
+than one-off hex values, so retuning the palette retunes the foil. The reveal
+bloom, the petal sparks and the date's glow are on the same tokens.
+
+The "scratch to reveal" hint is `--ink-soft`, not `--gold-deep`: gold-on-gold
+measured **2.86:1** against the foil actually behind it, under the 3:1 floor for
+large text. `--ink-soft` is the same palette's secondary ink and measures 4.48:1.
+
+### Parallax layers
+
+Individual elements opt into their own depth with `data-par` (and optionally
+`data-par-scale`); the engine writes the result to a `--par` custom property each
+frame, and the element folds that into whatever transform it already uses for its
+own positioning, so the two never clobber each other. The portrait uses this: the
+photograph and the names below it travel at different rates against the static
+wreath, the names further because they read as nearer.
+
+Two things that are easy to get wrong here:
+
+- **`data-par` is a percentage of the PICTURE's height, not the viewport's.**
+  These layers sit on painted artwork, and on a tall desktop window the stage is
+  capped at 1180px while the viewport keeps growing — a `vh`-based drift then
+  travels further across the picture than intended and slides the photograph into
+  the wreath's lower flowers. Resolved to px against `--vh`, phone and tall
+  desktop measure identically.
+- **The portrait scales about its bottom edge** (`transform-origin: 50% 100%`).
+  That edge is the binding constraint against the flowers; letting the scale
+  breathe upward into the roomier top margin keeps it clear at every scroll
+  position.
 
 ### A scene with no clip
 

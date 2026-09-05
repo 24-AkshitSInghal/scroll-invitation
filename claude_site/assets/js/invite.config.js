@@ -20,6 +20,12 @@
               the seam. f(0)=0 and f(1)=1 are preserved, so the seam frames are
               untouched and the flight stays continuous across the join.
      copy   : [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd] in local 0..1
+     parallax: viewport-heights the copy drifts across the scene. The film itself
+              is a camera move and must never be transformed, so depth comes from
+              the overlay travelling at its own rate against it. MUST be 0 for
+              any scene whose overlay is locked to painted artwork — the scratch
+              medallion and the RSVP silk panel — or it slides off its target.
+              Individual elements can carry data-par="<vh>" for their own layer.
    ========================================================================== */
 
 window.INVITE = {
@@ -90,14 +96,14 @@ window.INVITE = {
       id: 'open', label: 'Welcome', kind: 'open',
       clip: 'assets/video/c1.mp4', clipMobile: 'assets/video/c1-m.mp4',
       poster: 'assets/poster/c1.jpg',
-      scroll: 1.9, settle: 0.88, copy: [-0.05, -0.01, 1, 1],
+      scroll: 1.9, settle: 0.88, copy: [-0.05, -0.01, 1, 1], parallax: 0.9,
       place: 'lower',
     },
     {
       id: 'couple', label: 'The Couple', kind: 'couple',
       clip: 'assets/video/c2.mp4', clipMobile: 'assets/video/c2-m.mp4',
       poster: 'assets/poster/c2.jpg',
-      scroll: 1.7, settle: 1, linger: 0.35, copy: [0.42, 0.60, 0.92, 1],
+      scroll: 1.7, settle: 1, linger: 0.35, copy: [0.42, 0.60, 0.92, 1], parallax: 1.6,
       place: 'center',
     },
     {
@@ -105,51 +111,54 @@ window.INVITE = {
          wreath, so this scene holds that frame and the portrait settles into the
          wreath's opening. Clip 3 was chained from this same frame, so the flight
          picks straight back up afterwards. */
+      /* anchored: the frame is pinned to the wreath's opening, so the scene
+         itself must not shift it. Depth comes from the photo and the names
+         carrying their own data-par layers instead. */
       id: 'portrait', label: 'The Two of Us', kind: 'portrait',
       clip: null, poster: 'assets/poster/c2b.jpg',
-      scroll: 1.7, settle: 1, copy: [0.16, 0.38, 0.88, 0.99],
+      scroll: 1.7, settle: 1, copy: [0.16, 0.38, 0.88, 0.99], parallax: 0, anchored: true,
       place: 'fill',
     },
     {
       id: 'family', label: 'Our Families', kind: 'family',
       clip: 'assets/video/c3.mp4', clipMobile: 'assets/video/c3-m.mp4',
       poster: 'assets/poster/c3.jpg',
-      scroll: 1.7, settle: 1, linger: 0.35, copy: [0.44, 0.62, 0.92, 1],
+      scroll: 1.7, settle: 1, linger: 0.35, copy: [0.44, 0.62, 0.92, 1], parallax: 1.6,
       place: 'center',
     },
     {
       id: 'savethedate', label: 'Save the Date', kind: 'scratch',
       clip: 'assets/video/c4.mp4', clipMobile: 'assets/video/c4-m.mp4',
       poster: 'assets/poster/c4.jpg',
-      scroll: 2.5, settle: 0.42, copy: [0.42, 0.54, 1, 1],
+      scroll: 2.5, settle: 0.42, copy: [0.42, 0.54, 1, 1], parallax: 0, anchored: true,   // locked to the medallion
       place: 'fill',
     },
     {
       id: 'ceremony', label: 'The Ceremony', kind: 'ceremony',
       clip: 'assets/video/c5.mp4', clipMobile: 'assets/video/c5-m.mp4',
       poster: 'assets/poster/c5.jpg',
-      scroll: 2.0, settle: 1, linger: 0.35, copy: [0.40, 0.58, 0.94, 1],
+      scroll: 2.0, settle: 1, linger: 0.35, copy: [0.40, 0.58, 0.94, 1], parallax: 1.4,
       place: 'center',
     },
     {
       id: 'venue', label: 'The Venue', kind: 'venue',
       clip: 'assets/video/c6.mp4', clipMobile: 'assets/video/c6-m.mp4',
       poster: 'assets/poster/c6.jpg',
-      scroll: 2.1, settle: 1, linger: 0.35, copy: [0.46, 0.64, 0.96, 1],
+      scroll: 2.1, settle: 1, linger: 0.35, copy: [0.46, 0.64, 0.96, 1], parallax: 1.3,
       place: 'lower',
     },
     {
       id: 'rsvp', label: 'RSVP', kind: 'rsvp',
       clip: 'assets/video/c7.mp4', clipMobile: 'assets/video/c7-m.mp4',
       poster: 'assets/poster/c7.jpg',
-      scroll: 2.8, settle: 0.38, copy: [0.38, 0.50, 1, 1],
+      scroll: 2.8, settle: 0.38, copy: [0.38, 0.50, 1, 1], parallax: 0, anchored: true,   // locked to the silk panel
       place: 'fill',
     },
     {
       id: 'blessing', label: 'Blessings', kind: 'finale',
       clip: 'assets/video/c8.mp4', clipMobile: 'assets/video/c8-m.mp4',
       poster: 'assets/poster/c8.jpg',
-      scroll: 2.0, settle: 0.72, copy: [0.40, 0.56, 0.86, 0.98],
+      scroll: 2.0, settle: 0.72, copy: [0.40, 0.56, 0.86, 0.98], parallax: 1.3,
       place: 'center',
     },
     {
@@ -158,7 +167,7 @@ window.INVITE = {
          card settles onto it. Same picture across the seam, so nothing moves. */
       id: 'hosts', label: 'With Love', kind: 'hosts',
       clip: null, poster: 'assets/poster/c9.jpg',
-      scroll: 1.7, settle: 1, copy: [0.16, 0.38, 1, 1],
+      scroll: 1.7, settle: 1, copy: [0.16, 0.38, 1, 1], parallax: 1.1,
       place: 'center',
     },
   ],

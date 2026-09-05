@@ -83,6 +83,26 @@
     }))
   );
 
+  /* Depth. The film is a camera move and must never be transformed — doing so
+     would break the seams and pull the video-space anchors off their artwork —
+     so the sense of depth comes from the overlays travelling at their own rate
+     against it. Each scene drifts by its `parallax` (viewport-heights across the
+     whole scene); elements carrying data-par get their own layer on top, written
+     to a --par custom property so it composes with whatever transform the element
+     already uses for its own positioning.
+
+     data-par is a percentage of the PICTURE's height, not the viewport's, and is
+     resolved to px here. Those layers sit on painted artwork, and on a tall
+     desktop window the stage is capped at 1180px while the viewport is taller —
+     a vh-based drift would then travel further across the picture than intended
+     and slide the photograph into the wreath's lower flowers. */
+  const layers = copies.map((c) =>
+    Array.from(c.querySelectorAll('[data-par]')).map((el) => ({
+      el, d: parseFloat(el.dataset.par) || 0,
+      scale: parseFloat(el.dataset.parScale) || 0,
+    }))
+  );
+
   /* -- section rail ------------------------------------------------------- */
   SECTIONS.forEach((s, i) => {
     const b = document.createElement('button');
@@ -142,6 +162,7 @@
      positioned against these variables instead, which describe where the video's
      own 0–100% actually lands inside the stage. On desktop the stage is already
      9:16, so the offsets are zero and this reduces to plain percentages. */
+  let picH = 0;    // the film's displayed height in px — the unit for data-par
   function mapVideoSpace() {
     const sw = stage.clientWidth, sh = stage.clientHeight;
     if (!sw || !sh) return;
@@ -152,6 +173,7 @@
     s.setProperty('--vy', ((sh - dh) / 2) + 'px');
     s.setProperty('--vw', dw + 'px');
     s.setProperty('--vh', dh + 'px');
+    picH = dh;
   }
 
   function layout() {
@@ -206,7 +228,24 @@
       if (o1 > o0) cop = Math.min(cop, smooth(1 - (local - o0) / (o1 - o0)));
       if (y < sc.start || y > sc.end) cop = Math.min(cop, op);
       c.style.opacity = cop;
-      c.style.transform = reduce ? 'none' : 'translateY(' + ((1 - cop) * 1.6).toFixed(2) + 'vh)';
+      // Entrance rise plus the scene's own drift, centred on mid-scene so the
+      // copy travels through the frame rather than starting or ending displaced.
+      // An anchored scene gets neither: its overlay sits on painted artwork, and
+      // even the entrance offset would have it scratching or typing against a
+      // target 1.6vh away from where it looks.
+      if (reduce || sc.cfg.anchored) {
+        c.style.transform = 'none';
+      } else {
+        const par = (sc.cfg.parallax || 0) * (0.5 - local);
+        c.style.transform = 'translate3d(0,' + ((1 - cop) * 1.6 + par).toFixed(3) + 'vh,0)';
+      }
+
+      if (!reduce) {
+        for (const L of layers[i]) {
+          L.el.style.setProperty('--par', (L.d / 100 * picH * (0.5 - local)).toFixed(2) + 'px');
+          if (L.scale) L.el.style.setProperty('--par-scale', (1 + L.scale * (0.5 - local)).toFixed(4));
+        }
+      }
       // Interactive scenes need a generous hit window, not a razor-thin peak.
       c.style.pointerEvents = cop > 0.55 ? 'auto' : 'none';
       c.classList.toggle('is-live', cop > 0.55);

@@ -33,33 +33,49 @@
       canvas.height = Math.round(r.height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Antique gold with a bright sheen band raking across it, so it reads as
-      // struck foil rather than a flat swatch.
+      // The foil is struck from the page's own gold ramp rather than one-off
+      // hex values, so it stays in step if the palette is ever retuned:
+      // --gold-deep -> --gold -> --gold-soft -> --gold-bright, with --cream as
+      // the sheen raking across the middle.
+      const root = getComputedStyle(document.documentElement);
+      const tok = (n, fb) => (root.getPropertyValue(n).trim() || fb);
+      const DEEP   = tok('--gold-deep',   '#8a6830');
+      const GOLD   = tok('--gold',        '#b8934c');
+      const SOFT   = tok('--gold-soft',   '#d9bd85');
+      const BRIGHT = tok('--gold-bright', '#e7cf9a');
+      const CREAM  = tok('--cream',       '#fffaf2');
+
       const g = ctx.createLinearGradient(0, 0, r.width, r.height);
-      g.addColorStop(0.00, '#c2a154');
-      g.addColorStop(0.13, '#dcbe76');
-      g.addColorStop(0.29, '#f0dda6');
-      g.addColorStop(0.42, '#fffcef');   // sheen
-      g.addColorStop(0.50, '#fbf1d2');
-      g.addColorStop(0.62, '#ead9a4');
-      g.addColorStop(0.78, '#cfae66');
-      g.addColorStop(0.92, '#eedaa8');
-      g.addColorStop(1.00, '#bd9a4c');
+      g.addColorStop(0.00, DEEP);
+      g.addColorStop(0.13, GOLD);
+      g.addColorStop(0.28, SOFT);
+      g.addColorStop(0.41, BRIGHT);
+      g.addColorStop(0.48, CREAM);     // sheen
+      g.addColorStop(0.56, BRIGHT);
+      g.addColorStop(0.68, SOFT);
+      g.addColorStop(0.80, GOLD);
+      g.addColorStop(0.92, SOFT);
+      g.addColorStop(1.00, DEEP);
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, r.width, r.height);
 
-      // A soft radial lift in the middle so the disc looks domed, not printed.
+      // A soft radial lift so the disc reads as domed rather than printed flat.
+      const rgba = (hex, a) => {
+        const h = hex.replace('#', '');
+        const n = parseInt(h.length === 3 ? h.replace(/./g, (c) => c + c) : h, 16);
+        return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+      };
       const rg = ctx.createRadialGradient(r.width * 0.4, r.height * 0.34, 0,
                                           r.width * 0.5, r.height * 0.5, r.width * 0.72);
-      rg.addColorStop(0, 'rgba(255,253,240,.36)');
-      rg.addColorStop(1, 'rgba(150,116,42,.20)');
+      rg.addColorStop(0, rgba(CREAM, 0.34));
+      rg.addColorStop(1, rgba(DEEP, 0.30));
       ctx.fillStyle = rg;
       ctx.fillRect(0, 0, r.width, r.height);
 
       // A little grain so the foil doesn't read as flat vector fill.
       ctx.globalAlpha = 0.06;
       for (let i = 0; i < 900; i++) {
-        ctx.fillStyle = i % 2 ? '#fff' : '#a8853a';
+        ctx.fillStyle = i % 2 ? CREAM : DEEP;
         ctx.fillRect(Math.random() * r.width, Math.random() * r.height, 1.6, 1.6);
       }
       ctx.globalAlpha = 1;
