@@ -1,26 +1,15 @@
 /* ============================================================================
-   scroll-film.js — scroll-scrubbed camera flight for the ShubhMilan invitation
+   scroll-film.js — scroll-driven camera flight for the ShubhMilan invitation
    ----------------------------------------------------------------------------
    Scroll drives time, not motion: eight pre-rendered 9:16 clips form one
-   continuous camera flight, and scroll position sets each clip's currentTime.
-   Nothing here is framework-specific.
+   continuous camera flight, and scroll position picks the frame to show.
 
-   The three things that make this work, and are easy to get wrong:
+   The film is a WebP frame sequence rather than video — see film.js for why, and
+   for how frames are fetched, decoded in a window, and composited. This file
+   owns the mapping from scroll position to frame, the copy, and the chrome.
 
-   1. BLOB PLAYBACK. Static hosts that don't answer HTTP byte-range requests pin
-      video.seekable to [0,0], which clamps every seek to frame 0 — the clip
-      looks frozen. Fetching each clip as a Blob and playing it from an in-memory
-      object URL sidesteps the host entirely; blobs are always fully seekable.
-
-   2. SEEK COALESCING. Never assign currentTime while the decoder is still
-      `seeking`. On a phone a fast flick otherwise queues seeks faster than they
-      resolve and the picture locks up. We skip the frame and snap to the latest
-      target as soon as the decoder frees up.
-
-   3. iOS PRIMING. A muted video that has never been played won't paint a seeked
-      frame in iOS Safari — the scene stays blank. So the poster stays up until
-      the clip's first real `seeked` event, and every video gets a muted
-      play→pause on the first touch.
+   The pacing knobs that shape that mapping (`settle`, `linger`, `parallax`,
+   `anchored`) are documented in invite.config.js.
    ========================================================================== */
 
 (function () {
@@ -53,27 +42,28 @@
 
   /* Build one scene layer per section, each holding a poster and (once loaded)
      its video. They are stacked; opacity picks the active one. */
-  const scenes = SECTIONS.map((s, i) => {
-    const el = document.createElement('div');
-    el.className = 'scene';
-    el.dataset.i = i;
-    const img = document.createElement('img');
-    img.className = 'scene__poster';
-    img.alt = '';
-    img.decoding = 'async';
-    // Only the opening poster is wanted up front. The other nine are fetched as
-    // the viewer approaches them — ten at once is ~600KB of requests competing
-    // with the clip that is actually on screen.
-    if (i === 0) img.src = s.poster;
-    el.appendChild(img);
-    stage.insertBefore(el, stage.firstChild);
-    return {
-      i, cfg: s, el, img,
-      video: null, ready: false, loading: false, painted: false,
-      cur: 0, target: 0, visible: false, start: 0, end: 0,
-      w: s.scroll || cfg.diveScroll, settle: s.settle || 1, linger: s.linger || 0,
-    };
-  });
+  /* One canvas for the whole film. Ten stacked full-screen layers was work the
+     compositor repeated every frame; a crossfade here is two drawImage calls. */
+  const canvas = document.createElement('canvas');
+  canvas.className = 'film';
+  canvas.setAttribute('aria-hidden', 'true');
+  stage.insertBefore(canvas, stage.firstChild);
+  const renderer = new Film.Renderer(canvas);
+
+  // One Sequence per distinct clip — scenes that rest on another clip's final
+  // frame share its sequence rather than shipping a second copy.
+  const seqs = {};
+  function seqFor(dir) {
+    if (!seqs[dir]) seqs[dir] = new Film.Sequence(dir, cfg.frameCount || 56);
+    return seqs[dir];
+  }
+
+  const scenes = SECTIONS.map((s, i) => ({
+    i, cfg: s, seq: seqFor(s.frames),
+    target: 0, op: 0, frameIndex: 0, visible: false, start: 0, end: 0,
+    w: s.scroll || cfg.diveScroll, settle: s.settle || 1, linger: s.linger || 0,
+  }));
+
 
   const copies = Array.from(document.querySelectorAll('.copy'));
 
@@ -121,98 +111,17 @@
   });
   const dots = Array.from(rail.children);
 
-  /* -- clip loading -------------------------------------------------------- */
-  /* Two strategies, chosen by what the host can actually do.
-
-     Streaming (preferred): point the <video> at the URL and let the browser
-     fetch by range as it seeks. Frames appear after a few hundred KB instead of
-     after the whole file, which is the difference between a scene painting
-     immediately and a phone showing a still for several seconds. Requires the
-     host to answer HTTP range requests — a CDN does, `python -m http.server`
-     does not.
-
-     Blob (fallback): fetch the whole file and play it from an object URL. Always
-     seekable, but nothing paints until the last byte lands. */
-  let rangeOK = null;                       // null = not yet probed
-  function probeRange(url) {
-    if (rangeOK !== null) return Promise.resolve(rangeOK);
-    return fetch(url, { headers: { Range: 'bytes=0-1' } })
-      .then((r) => { rangeOK = (r.status === 206); return rangeOK; })
-      .catch(() => { rangeOK = false; return false; });
-  }
-
-  function attach(sc, src, revoke) {
-    const v = document.createElement('video');
-    v.className = 'scene__video';
-    v.muted = true; v.defaultMuted = true; v.playsInline = true; v.preload = 'auto';
-    v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
-    v.src = src;
-    sc.revoke = revoke || null;
-
-    v.addEventListener('loadedmetadata', () => { sc.ready = true; read(); });
-    v.addEventListener('loadeddata', () => {
-      try { v.pause(); } catch (e) {}
-      prime(v);
-    });
-
-    /* Revealing the clip. The poster stays up until a real frame has painted,
-       because iOS won't paint a seeked-but-never-played muted video and we'd
-       otherwise flash an empty scene.
-
-       The catch: if that signal never arrives, the scene is stuck showing a
-       still for ever — which is exactly what a scroll past the opening looked
-       like on iOS. So take the first of three, rather than betting on one:
-       a presented frame (the only signal that actually means "painted"), a
-       completed seek, or a late check that the decoder has frames at all. */
-    function reveal() {
-      if (sc.painted) return;
-      sc.painted = true;
-      sc.el.classList.add('has-clip');
-    }
-    if (typeof v.requestVideoFrameCallback === 'function') {
-      try { v.requestVideoFrameCallback(reveal); } catch (e) {}
-    }
-    v.addEventListener('seeked', reveal, { once: true });
-    sc.revealTimer = setTimeout(() => { if (v.readyState >= 3) reveal(); }, 2500);
-
-    sc.el.appendChild(v);
-    sc.video = v;
-  }
-
-  function loadClip(sc) {
-    // Under reduced motion we never fetch video at all: the posters stay up and
-    // simply cross-dissolve. No decode cost, no scrubbed motion.
-    if (reduce || sc.loading || !sc.cfg.clip) return;
-    sc.loading = true;
-    const url = (isMobile() && sc.cfg.clipMobile) ? sc.cfg.clipMobile : sc.cfg.clip;
-
-    probeRange(url).then((ok) => {
-      if (ok) { attach(sc, url); return; }
-      fetch(url)
-        .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(r.status))))
-        .then((blob) => {
-          const obj = URL.createObjectURL(blob);
-          attach(sc, obj, obj);
-        })
-        .catch(() => { sc.loading = false; });   // poster carries the scene
-    });
-  }
-
-  /* A phone can only keep a handful of video decoders alive at once; ten 
-     1080-tall clips sitting in the DOM is what turns a smooth scrub into a
-     slideshow. Keep a small window around the viewer and tear the rest down —
-     the poster takes over instantly, and reloading is cheap once cached. */
-  function releaseClip(sc) {
-    if (!sc.video) return;
-    const v = sc.video;
-    clearTimeout(sc.revealTimer);
-    sc.video = null; sc.ready = false; sc.loading = false; sc.painted = false;
-    sc.cur = sc.target;
-    sc.el.classList.remove('has-clip');
-    try { v.pause(); } catch (e) {}
-    try { v.removeAttribute('src'); v.load(); } catch (e) {}
-    if (sc.revoke) { URL.revokeObjectURL(sc.revoke); sc.revoke = null; }
-    if (v.parentNode) v.parentNode.removeChild(v);
+  /* -- loading ------------------------------------------------------------- */
+  /* Every frame is fetched up front, behind the invitation gate. The whole film
+     is ~26MB — less than the video it replaced — and once it is in, scrolling
+     touches nothing but memory: no request, no decode chain, no stall. */
+  function loadAll(onProgress) {
+    const list = Object.keys(seqs).map((k) => seqs[k]);
+    const total = list.reduce((n, q) => n + q.count, 0);
+    let done = 0;
+    const tick = () => { done++; onProgress(done / total); };
+    // In scene order, so the opening is ready first even mid-load.
+    return list.reduce((p, q) => p.then(() => q.fetchAll(tick)), Promise.resolve());
   }
 
   /* -- scroll read (layout + opacity, cheap) -------------------------------- */
@@ -237,6 +146,7 @@
     s.setProperty('--vw', dw + 'px');
     s.setProperty('--vh', dh + 'px');
     picH = dh;
+    renderer.resize(sw, sh);
   }
 
   function layout() {
@@ -261,13 +171,6 @@
 
     for (let i = 0; i < N; i++) {
       const sc = scenes[i];
-      // How far ahead we fetch, and how many decoders we keep alive. A phone
-      // pays for both: every extra clip is bandwidth competing with the one on
-      // screen, and a live decoder it may not have to spare.
-      const near = Math.abs(i - ci) <= (mobile ? 1 : 2);
-      if (Math.abs(i - ci) <= 2 && !sc.img.src) sc.img.src = sc.cfg.poster;
-      if (near) loadClip(sc);
-      else if (sc.video && Math.abs(i - ci) > (mobile ? 2 : 3)) releaseClip(sc);
 
       const local = clamp((y - sc.start) / (sc.end - sc.start));
       // `linger` slows the camera through the middle of the scene without ever
@@ -279,25 +182,20 @@
       let outside = 0;
       if (y < sc.start) outside = sc.start - y;
       else if (y > sc.end) outside = y - sc.end;
-      const op = smooth(1 - outside / fade);
-      const vis = op > 0.001;
-      if (vis !== sc.visible) sc.el.style.visibility = vis ? 'visible' : 'hidden';
-      sc.el.style.opacity = op;
-      sc.visible = vis;
-      sc.el.style.zIndex = (i === ci) ? 60 : 40 + Math.round(op * 10);
-
-      // Before the clip paints, give the poster a touch of drift so a slow
-      // connection still feels alive rather than frozen.
-      if (!sc.painted) {
-        sc.img.style.transform = reduce ? 'none' : 'scale(' + (1.02 + local * 0.06).toFixed(4) + ')';
-      }
+      sc.op = smooth(1 - outside / fade);
+      sc.visible = sc.op > 0.002;
+      // `still` scenes rest on their sequence's last frame — that is how the
+      // portrait and the closing card sit on the frame the previous clip ended
+      // on without a second copy of anything.
+      const t = sc.cfg.still ? 1 : sc.target;
+      sc.frameIndex = Math.round(clamp(t) * (sc.seq.count - 1));
 
       // ---- copy ----
       const c = copies[i];
       const [i0, i1, o0, o1] = sc.cfg.copy || [0.2, 0.4, 0.75, 0.95];
       let cop = smooth((local - i0) / (i1 - i0));
       if (o1 > o0) cop = Math.min(cop, smooth(1 - (local - o0) / (o1 - o0)));
-      if (y < sc.start || y > sc.end) cop = Math.min(cop, op);
+      if (y < sc.start || y > sc.end) cop = Math.min(cop, sc.op);
       c.style.opacity = cop;
       // Entrance rise plus the scene's own drift, centred on mid-scene so the
       // copy travels through the frame rather than starting or ending displaced.
@@ -343,53 +241,24 @@
     ticking = false;
   }
 
-  /* -- seek loop (rAF, the only place currentTime is written) --------------- */
+  /* -- render loop ---------------------------------------------------------- */
   function frame() {
-    const mobile = isMobile();
-    const eps = mobile ? 0.016 : 0.008;   // coarser step on phones = fewer decodes
-    for (let i = 0; i < N; i++) {
-      const sc = scenes[i];
-      if (!sc.ready || !sc.video) continue;
-      // Only drive what is actually on screen. Seeking an invisible clip costs
-      // exactly as much as seeking a visible one, and on a phone those wasted
-      // decodes are taken straight out of the one the viewer is looking at.
-      if (!sc.visible) { sc.cur = sc.target; continue; }
-      if (sc.video.seeking) continue;                       // coalesce — see header
-
-      // During the scripted intro we drive the clip as fast as the decoder will
-      // go: the smoothing that makes hand-scrolling feel good would leave the
-      // monogram several seconds behind its own reveal.
-      sc.cur += (sc.target - sc.cur) * (introActive ? 1 : 0.18);
-      const dur = sc.video.duration || 1;
-      const t = clamp(sc.cur, 0, 0.999) * dur;
-      if (Math.abs(sc.video.currentTime - t) > eps) {
-        try { sc.video.currentTime = t; } catch (e) {}
+    // Composite the visible scenes the way stacked opacity layers would: the
+    // faintest as the base, the rest blended over it. Across a seam both sides
+    // hold the same picture, so the dissolve is invisible either way.
+    const vis = [];
+    for (let i = 0; i < N; i++) if (scenes[i].visible) vis.push(scenes[i]);
+    if (vis.length) {
+      vis.sort((p, q) => p.op - q.op);
+      for (let k = 0; k < vis.length; k++) {
+        const sc = vis[k];
+        const idx = sc.frameIndex;
+        sc.seq.window(idx);
+        renderer.paint(sc.seq.nearest(idx), k === 0 ? 1 : sc.op);
       }
     }
     requestAnimationFrame(frame);
   }
-
-  let introActive = false;
-
-  /* -- iOS priming ---------------------------------------------------------- */
-  function prime(v) {
-    if (!isMobile() || !v || v._primed) return;
-    v._primed = true;
-    try {
-      const p = v.play();
-      if (p && p.then) {
-        p.then(() => { try { v.pause(); } catch (e) {} })
-         .catch(() => { v._primed = false; });   // let a later gesture retry
-      }
-    } catch (e) { v._primed = false; }
-  }
-  // iOS grants playback on a *transient* user activation, so a clip that loads
-  // later is outside the window the first touch opened. Re-prime on every
-  // gesture instead of once — it is a no-op for anything already primed.
-  function onGesture() { scenes.forEach((sc) => prime(sc.video)); }
-  addEventListener('pointerdown', onGesture, { passive: true });
-  addEventListener('touchstart', onGesture, { passive: true });
-  addEventListener('touchend', onGesture, { passive: true });
 
   /* -- wiring --------------------------------------------------------------- */
   addEventListener('scroll', () => {
@@ -419,20 +288,40 @@
   layout();
   requestAnimationFrame(frame);
 
-  /* -- opening curtain ------------------------------------------------------ */
-  // Hold the ivory curtain until the first scene can actually carry the screen,
-  // so nobody ever sees an empty stage. Poster is enough; video is a bonus.
+  /* -- the invitation gate --------------------------------------------------- */
+  /* Load the whole film first, then let the visitor in. It costs a wait up
+     front, but it is the only way to promise that nothing stutters afterwards —
+     and the tap that opens it is a real user gesture, which is also what lets
+     the music start on iOS. */
   const curtain = $('.curtain');
-  let lifted = false;
-  function lift() {
-    if (lifted) return;
-    lifted = true;
+  const bar = $('.curtain__fill');
+  const pct = $('.curtain__pct');
+  const openBtn = $('.curtain__open');
+  let opened = false;
+
+  function open() {
+    if (opened) return;
+    opened = true;
     curtain.classList.add('is-up');
-    setTimeout(() => curtain.remove(), 1400);
+    document.documentElement.classList.remove('is-locked');
+    setTimeout(() => { if (curtain.parentNode) curtain.remove(); }, 1200);
+    window.dispatchEvent(new CustomEvent('invitation:open'));   // music listens
+    setTimeout(autoIntro, 500);
   }
-  if (scenes[0].img.complete) setTimeout(lift, 900);
-  else scenes[0].img.addEventListener('load', () => setTimeout(lift, 700));
-  setTimeout(lift, 6000);   // never trap the visitor behind a slow asset
+
+  document.documentElement.classList.add('is-locked');
+  openBtn.addEventListener('click', open);
+
+  loadAll((p) => {
+    const v = Math.round(p * 100);
+    if (bar) bar.style.transform = 'scaleX(' + p.toFixed(3) + ')';
+    if (pct) pct.textContent = v + '%';
+  }).then(() => {
+    // Warm the opening frames so the first scroll has bitmaps ready.
+    scenes[0].seq.window(0);
+    curtain.classList.add('is-ready');
+    if (pct) pct.textContent = '';
+  });
 
   /* -- the opening flight --------------------------------------------------- */
   /* Once the curtain is up we fly the first scene ourselves, slowly, so the
@@ -449,7 +338,6 @@
     const cancel = () => {
       if (stop) return;
       stop = true;
-      introActive = false;
       removeEventListener('wheel', cancel);
       removeEventListener('touchmove', cancel);
       removeEventListener('keydown', cancel);
@@ -467,26 +355,15 @@
       scrollTo(0, target * e);
       if (p < 1) requestAnimationFrame(step); else cancel();
     }
-    introActive = true;
     requestAnimationFrame(step);
   }
 
-  /* Don't start flying before the clip can answer — otherwise the scroll runs
-     the whole way while the decoder is still opening the file, and the monogram
-     draws itself long after the camera has stopped. */
-  function whenFirstClipReady(fn, waited) {
-    waited = waited || 0;
-    if (scenes[0].ready || waited > 8000) fn();
-    else setTimeout(() => whenFirstClipReady(fn, waited + 120), 120);
-  }
   // Only from a cold start at the top — never yank someone who reloaded midway
   // or followed a link with a restored scroll position.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   addEventListener('load', () => {
     if ((scrollY || pageYOffset) >= 4) return;
-    whenFirstClipReady(() => {
-      if ((scrollY || pageYOffset) < 4) setTimeout(autoIntro, 700);
-    });
+    setTimeout(autoIntro, 700);
   });
 
   window.FILM = { scenes, layout, read, isMobile };

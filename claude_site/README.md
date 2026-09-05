@@ -182,54 +182,59 @@ Three things it has to get right, all in `autoIntro()`:
   instantly, and it only runs from a cold start at the very top — a reload
   midway, or `prefers-reduced-motion`, skips it entirely.
 
-## Performance on a real phone
+## The film is frames, not video
 
-The first build was tested on an iPhone 15 over Vercel and scrubbed badly: text
-arriving before the film, clips freezing, frames skipped — and past the opening
-scene, the clips didn't run at all, only the parallax. Everything below is a fix
-for something that was actually observed, not a precaution.
+The first two builds scrubbed eight `<video>` elements by setting `currentTime`.
+On a desktop that is fine. On an iPhone 15 over Vercel it was not: the film ran
+to about clip 4 and then stopped, some clips failed to appear at all on refresh,
+and what was left was copy sliding over a still image.
 
-**Only the first clip played.** Every loaded clip stayed in the DOM, so ten
-1080-tall decoders were alive at once. A phone has nowhere near that many, so
-later clips never decoded, never fired `seeked`, never got their `has-clip`
-class, and sat on their poster for ever — a still image that parallaxed. Two
-fixes: keep a **window of at most three live decoders** around the viewer and
-tear the rest down (`releaseClip`), and stop revealing on a single signal. The
-reveal now takes the first of `requestVideoFrameCallback` (the only event that
-truly means "a frame was presented"), `seeked`, or a 2.5s net that checks the
-decoder actually has frames — so a scene can never be stranded on a still again.
+The reason is that scrubbing asks a video decoder to do the thing it is worst at
+— decode at an arbitrary point in a dependency chain, thousands of times — while
+video decoders are a limited system resource a phone will not hand out ten of.
+A scene whose decoder never came up simply never painted, and there was no
+recovering it. Every fix short of removing video was treating a symptom.
 
-**iOS user activation is transient.** Priming ran once on the first touch, which
-covered the clips loaded by then and nothing after. Priming now runs on every
-gesture and is a no-op for anything already primed; a failed attempt clears the
-flag so a later gesture retries.
+So scroll now picks an array index instead:
 
-**Nothing painted until a whole clip had downloaded.** Blob playback waits for
-the last byte — 7MB before a single frame. Vercel answers range requests, so the
-engine now probes once and, when supported, points the `<video>` straight at the
-URL and lets it stream and seek by range; frames arrive after a few hundred KB.
-Blob remains the fallback for hosts that don't (including `python -m
-http.server`, which is why local preview still uses it).
+- **`assets/frames/cN/001..056.webp`** — 56 frames per clip at 1080x1920, 448
+  frames, **26MB for the whole film**, which is *less* than the mobile video tier
+  it replaced. Frame 1 and frame 56 are the clip's true first and last, so the
+  chain is still seam-exact.
+- **No seeking, no decoder, no codec state.** Nothing can be in a bad state.
+- **One canvas.** Ten stacked full-screen layers was work the compositor repeated
+  every frame; a crossfade is now two `drawImage` calls.
 
-**The mobile tier was too heavy to decode.** It was full-HD 1080×1920 — 2.25x
-the pixels per seek. It is now **720x1280, crf 25, GOP 3** (`tools/encode-mobile.sh`):
-53MB -> 33MB, and far cheaper per seek. Desktop keeps its 1080 master.
+Decoding all 448 frames would be 3.7GB, so `film.js` never does: frames are held
+as compressed Blobs and only a window around the playhead is decoded, via
+`createImageBitmap` (which decodes off the main thread), with bitmaps outside the
+window closed. If the exact frame isn't ready the renderer draws the nearest one
+that is — a fast flick degrades to a slightly stale frame rather than a stall.
 
-**Everything else competing at load.** All ten posters fetched at once (~600KB
-against the clip on screen) — now only the first, then two ahead of the viewer.
-The Google Fonts stylesheet was render-blocking from a third-party origin — now
-async. The 2.4MB song was set to `preload="auto"` and raced the first clip — now
-`metadata`, with `play()` pulling the rest.
+Regenerate with `tools/frames.sh`; `N=72 ./tools/frames.sh` for a finer sequence
+at proportionally more bytes.
 
-**Compositing.** Every `backdrop-filter` is a full-screen readback per frame and
-they are ruinous on iOS mid-scrub; they now apply only under
-`(hover: hover) and (pointer: fine)`, with opaque equivalents on phones.
-Transparent scene and copy layers are set `visibility: hidden` so the compositor
-skips the eight that aren't on screen, and the standing `will-change` was removed
-from the ten full-screen posters.
+### The gate
 
-`vercel.json` marks the assets `immutable` for a year, so scrolling back and
-repeat visits cost nothing.
+Everything loads behind the **Open Invitation** button. It costs a wait up front,
+but it is the only honest way to promise the scroll never stutters — and the tap
+is a real user gesture, which is also the one moment iOS will reliably let the
+music start.
+
+If you would rather people got in sooner, `loadAll()` already fetches in scene
+order, so opening the gate once the first two sequences are in and letting the
+rest continue in the background is a small change.
+
+### Other things that were costing time
+
+- All ten posters fetched at once against the clip on screen; the Google Fonts
+  stylesheet was render-blocking from a third-party origin (now async); the 2.4MB
+  song was `preload="auto"` and raced the first clip (now `metadata`).
+- Every `backdrop-filter` is a full-screen readback per frame and they are
+  ruinous on iOS mid-scroll. They now apply only under
+  `(hover: hover) and (pointer: fine)`, with opaque equivalents on phones.
+- `vercel.json` marks the frames, audio and images `immutable` for a year, so a
+  second visit opens instantly.
 
 ## Why the code looks the way it does
 

@@ -88,21 +88,25 @@ window.INVITE = {
   },
 
   /* -- the film ------------------------------------------------------------ */
+  /* Frames per clip. The film is a WebP frame sequence, not video: scroll picks
+     an array index, so there is no seeking and no video decoder involved. See
+     film.js for why. `still: true` pins a scene to its sequence's LAST frame —
+     that is how the portrait and the closing card rest on the frame the previous
+     clip ended on without shipping a second copy of anything. */
+  frameCount: 56,
   diveScroll: 1.45,        // default viewport-heights per scene
   crossfade: 0.16,         // seam dissolve width, in viewport-heights
 
   sections: [
     {
       id: 'open', label: 'Welcome', kind: 'open',
-      clip: 'assets/video/c1.mp4', clipMobile: 'assets/video/c1-m.mp4',
-      poster: 'assets/poster/c1.jpg',
+      frames: 'assets/frames/c1',
       scroll: 1.9, settle: 0.88, copy: [-0.05, -0.01, 1, 1], parallax: 0.9,
       place: 'lower',
     },
     {
       id: 'couple', label: 'The Couple', kind: 'couple',
-      clip: 'assets/video/c2.mp4', clipMobile: 'assets/video/c2-m.mp4',
-      poster: 'assets/poster/c2.jpg',
+      frames: 'assets/frames/c2',
       scroll: 1.7, settle: 1, linger: 0.35, copy: [0.42, 0.60, 0.92, 1], parallax: 1.6,
       place: 'center',
     },
@@ -115,49 +119,43 @@ window.INVITE = {
          itself must not shift it. Depth comes from the photo and the names
          carrying their own data-par layers instead. */
       id: 'portrait', label: 'The Two of Us', kind: 'portrait',
-      clip: null, poster: 'assets/poster/c2b.jpg',
+      frames: 'assets/frames/c2', still: true,
       scroll: 1.7, settle: 1, copy: [0.16, 0.38, 0.88, 0.99], parallax: 0, anchored: true,
       place: 'fill',
     },
     {
       id: 'family', label: 'Our Families', kind: 'family',
-      clip: 'assets/video/c3.mp4', clipMobile: 'assets/video/c3-m.mp4',
-      poster: 'assets/poster/c3.jpg',
+      frames: 'assets/frames/c3',
       scroll: 1.7, settle: 1, linger: 0.35, copy: [0.44, 0.62, 0.92, 1], parallax: 1.6,
       place: 'center',
     },
     {
       id: 'savethedate', label: 'Save the Date', kind: 'scratch',
-      clip: 'assets/video/c4.mp4', clipMobile: 'assets/video/c4-m.mp4',
-      poster: 'assets/poster/c4.jpg',
+      frames: 'assets/frames/c4',
       scroll: 2.5, settle: 0.42, copy: [0.42, 0.54, 1, 1], parallax: 0, anchored: true,   // locked to the medallion
       place: 'fill',
     },
     {
       id: 'ceremony', label: 'The Ceremony', kind: 'ceremony',
-      clip: 'assets/video/c5.mp4', clipMobile: 'assets/video/c5-m.mp4',
-      poster: 'assets/poster/c5.jpg',
+      frames: 'assets/frames/c5',
       scroll: 2.0, settle: 1, linger: 0.35, copy: [0.40, 0.58, 0.94, 1], parallax: 1.4,
       place: 'center',
     },
     {
       id: 'venue', label: 'The Venue', kind: 'venue',
-      clip: 'assets/video/c6.mp4', clipMobile: 'assets/video/c6-m.mp4',
-      poster: 'assets/poster/c6.jpg',
+      frames: 'assets/frames/c6',
       scroll: 2.1, settle: 1, linger: 0.35, copy: [0.46, 0.64, 0.96, 1], parallax: 1.3,
       place: 'lower',
     },
     {
       id: 'rsvp', label: 'RSVP', kind: 'rsvp',
-      clip: 'assets/video/c7.mp4', clipMobile: 'assets/video/c7-m.mp4',
-      poster: 'assets/poster/c7.jpg',
+      frames: 'assets/frames/c7',
       scroll: 2.8, settle: 0.38, copy: [0.38, 0.50, 1, 1], parallax: 0, anchored: true,   // locked to the silk panel
       place: 'fill',
     },
     {
       id: 'blessing', label: 'Blessings', kind: 'finale',
-      clip: 'assets/video/c8.mp4', clipMobile: 'assets/video/c8-m.mp4',
-      poster: 'assets/poster/c8.jpg',
+      frames: 'assets/frames/c8',
       scroll: 2.0, settle: 0.72, copy: [0.40, 0.56, 0.86, 0.98], parallax: 1.3,
       place: 'center',
     },
@@ -166,7 +164,7 @@ window.INVITE = {
          frame, so this scene holds that exact frame as a still and the closing
          card settles onto it. Same picture across the seam, so nothing moves. */
       id: 'hosts', label: 'With Love', kind: 'hosts',
-      clip: null, poster: 'assets/poster/c9.jpg',
+      frames: 'assets/frames/c8', still: true,
       scroll: 1.7, settle: 1, copy: [0.16, 0.38, 1, 1], parallax: 1.1,
       place: 'center',
     },

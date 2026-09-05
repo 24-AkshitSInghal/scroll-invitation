@@ -299,6 +299,10 @@
       }
     });
 
+    // Opening the invitation is a real user gesture — the one moment iOS will
+    // reliably allow audio — so take it. The load attempt and the gesture net
+    // stay as well, for anyone who lands past the gate.
+    addEventListener('invitation:open', () => { if (!mutedByUser) start(); });
     start().then((ok) => { if (!ok) arm(); });
 
     // Pause while the tab is away, resume on return — unless it was muted.

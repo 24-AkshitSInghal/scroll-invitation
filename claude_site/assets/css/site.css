@@ -106,19 +106,12 @@ img { max-width: 100%; display: block; }
   }
 }
 
-.scene {
-  position: absolute; inset: 0;
-  will-change: opacity;
-}
-.scene__poster,
-.scene__video {
+.film {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
-  object-fit: cover;
+  display: block;
+  background: var(--ivory-deep);
 }
-.scene__video { opacity: 0; transition: opacity .35s linear; }
-.scene.has-clip .scene__video { opacity: 1; }
-.scene.has-clip .scene__poster { opacity: 0; transition: opacity .35s linear .05s; }
 
 /* -- copy ----------------------------------------------------------------- */
 .copylayer { position: absolute; inset: 0; z-index: 70; pointer-events: none; }
@@ -730,42 +723,56 @@ img { max-width: 100%; display: block; }
 
 @media (max-width: 860px) { .music { width: 38px; height: 38px; right: 12px; } }
 
-/* -- opening curtain ------------------------------------------------------ */
+/* -- the invitation gate --------------------------------------------------- */
 .curtain {
   position: fixed; inset: 0; z-index: 200;
-  display: grid; place-items: center; gap: 0;
+  display: grid; place-content: center; justify-items: center;
   background: var(--cream);
-  transition: opacity 1.1s var(--ease), visibility 1.1s;
+  padding: 24px;
+  transition: opacity 1s var(--ease), visibility 1s;
 }
 .curtain.is-up { opacity: 0; visibility: hidden; }
+.is-locked, .is-locked body { overflow: hidden; }
+
 .curtain__mark {
-  width: clamp(110px, 17vh, 170px);
+  width: clamp(120px, 20vh, 190px);
   animation: breathe 3.4s ease-in-out infinite;
 }
-@keyframes breathe { 0%,100% { opacity: .82; transform: scale(1); } 50% { opacity: 1; transform: scale(1.02); } }
-.curtain__bar {
-  width: 120px; height: 1px; margin-top: 26px;
-  background: rgba(184,147,76,.2); overflow: hidden; position: relative;
-}
-.curtain__bar::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(90deg, transparent, var(--gold), transparent);
-  animation: sweep 1.5s var(--ease) infinite;
-}
-@keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes breathe { 0%,100% { opacity: .84; transform: scale(1); } 50% { opacity: 1; transform: scale(1.02); } }
 
-/* The glass is restored only where there's a pointer to hover with. A phone
-   scrubbing 720p video cannot also afford a full-screen backdrop readback. */
-@media (hover: hover) and (pointer: fine) {
-  .btn--ghost,
-  .hosts__calls a { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-  .music { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  .rsvp {
-    backdrop-filter: blur(9px) saturate(1.05);
-    -webkit-backdrop-filter: blur(9px) saturate(1.05);
-    background: linear-gradient(180deg, rgba(255,251,244,.90), rgba(253,246,235,.86));
-  }
+.curtain__bar {
+  width: min(210px, 60vw); height: 2px; margin-top: 30px;
+  background: rgba(184,147,76,.18); overflow: hidden; border-radius: 2px;
 }
+.curtain__fill {
+  display: block; width: 100%; height: 100%;
+  background: linear-gradient(90deg, var(--gold-soft), var(--gold));
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .3s linear;
+}
+.curtain__pct {
+  margin: 14px 0 0; min-height: 1.2em;
+  font-size: 10px; letter-spacing: .3em; color: var(--gold-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The button only exists once the film is entirely in memory, so opening it is
+   a promise that nothing will stutter afterwards. */
+.curtain__open {
+  margin-top: 8px; padding: 1.05em 2.2em;
+  border: 0; border-radius: 999px; cursor: pointer;
+  font-family: var(--font-body); font-size: clamp(11px, 1.5vh, 13px);
+  letter-spacing: .22em; text-transform: uppercase;
+  background: linear-gradient(135deg, #c8a462, var(--gold) 55%, #9c7838);
+  color: #fffaf0;
+  box-shadow: 0 8px 22px -8px rgba(146,110,44,.6);
+  opacity: 0; transform: translateY(8px); pointer-events: none;
+  transition: opacity .6s var(--ease), transform .6s var(--ease);
+}
+.curtain.is-ready .curtain__open { opacity: 1; transform: none; pointer-events: auto; }
+.curtain.is-ready .curtain__bar { opacity: 0; transition: opacity .5s; }
+.curtain__open:hover { transform: translateY(-2px); }
+.curtain__open:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
 
 /* -- accessibility -------------------------------------------------------- */
 .sr-only {
@@ -774,5 +781,4 @@ img { max-width: 100%; display: block; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
-  .scene__poster { transform: none !important; }
 }

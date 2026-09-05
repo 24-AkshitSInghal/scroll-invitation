@@ -10,23 +10,25 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Dr. Shubhanu &amp; Dr. Shubhangi — Engagement Invitation">
 <meta property="og:description" content="21 September 2026 · The Mansion Banquet, Meerut · #ShubhMilan">
-<meta property="og:image" content="assets/poster/c2.jpg">
+<meta property="og:image" content="assets/frames/c2/056.webp">
 
 <link rel="icon" href="assets/img/monogram.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@1,500;1,600;1,700&family=Jost:wght@300;400;500&display=swap" onload="this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@1,500;1,600;1,700&family=Jost:wght@300;400;500&display=swap"></noscript>
-<link rel="stylesheet" href="assets/css/site.css?v=27">
+<link rel="stylesheet" href="assets/css/site.css?v=31">
 
-<link rel="preload" as="image" href="assets/poster/c1.jpg" fetchpriority="high">
+<link rel="preload" as="image" href="assets/frames/c1/001.webp" fetchpriority="high">
 </head>
 <body>
 
-<!-- Opening curtain: holds until the first scene can carry the screen. -->
+<!-- The gate: the whole film loads behind this, then the visitor opens it. -->
 <div class="curtain">
   <img class="curtain__mark" src="assets/img/monogram.png" alt="Shubhanu and Shubhangi monogram">
-  <div class="curtain__bar"></div>
+  <div class="curtain__bar"><span class="curtain__fill"></span></div>
+  <p class="curtain__pct">0%</p>
+  <button class="curtain__open" type="button">Open Invitation</button>
 </div>
 
 <!-- Ambience behind the film -->
@@ -171,11 +173,11 @@
               <div class="choices">
                 <label class="choice">
                   <input type="radio" name="attending" value="yes" checked>
-                  <span>Joyfully yes</span>
+                  <span>Yes</span>
                 </label>
                 <label class="choice">
                   <input type="radio" name="attending" value="no">
-                  <span>Regretfully no</span>
+                  <span>No</span>
                 </label>
               </div>
             </fieldset>
@@ -242,8 +244,9 @@
 <!-- the scroll track: the only element with real height -->
 <div class="track" aria-hidden="true"></div>
 
-<script src="assets/js/invite.config.js?v=27"></script>
-<script src="assets/js/scroll-film.js?v=27"></script>
-<script src="assets/js/interactions.js?v=27"></script>
+<script src="assets/js/invite.config.js?v=31"></script>
+<script src="assets/js/film.js?v=31"></script>
+<script src="assets/js/scroll-film.js?v=31"></script>
+<script src="assets/js/interactions.js?v=31"></script>
 </body>
 </html>
