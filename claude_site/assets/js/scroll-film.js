@@ -36,6 +36,7 @@
   let vh = innerHeight, laidOutW = innerWidth, total = 0;
 
   const stage = $('.stage');
+  const stagewrap = $('.stagewrap');
   const track = $('.track');
   const rail = $('.rail');
   const progress = $('.progress__fill');
@@ -153,7 +154,20 @@
      canvas backing store and the video-space anchors. `layout` additionally
      rebuilds the scroll bands, which moves where every scene begins and so
      yanks the reader's position; that must only happen on a real width change. */
+  /* How tall the film actually is. Percentages and `dvh` both hand this decision
+     to the browser, and iOS in particular disagrees with itself about whether a
+     fixed element tracks the URL bar — which is how the copy could grow while the
+     picture behind it did not. One number, set here, and everything downstream
+     (stage box, canvas CSS box, canvas backing store, cover geometry) follows it. */
+  function viewportH() {
+    return Math.round(window.visualViewport ? visualViewport.height : innerHeight);
+  }
+
+  let appliedH = 0;
   function measure() {
+    const h = viewportH();
+    appliedH = h;
+    stagewrap.style.height = h + 'px';
     mapVideoSpace();
     read();
   }
@@ -252,6 +266,11 @@
 
   /* -- render loop ---------------------------------------------------------- */
   function frame() {
+    // Some browsers do not fire any resize for the URL bar sliding away. Reading
+    // the viewport height is free (no layout), so just check it every frame and
+    // re-measure when it moves — the picture can never fall out of step.
+    if (viewportH() !== appliedH) measure();
+
     // Composite the visible scenes the way stacked opacity layers would: the
     // faintest as the base, the rest blended over it. Across a seam both sides
     // hold the same picture, so the dissolve is invisible either way.

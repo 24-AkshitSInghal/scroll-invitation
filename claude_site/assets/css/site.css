@@ -97,8 +97,11 @@ img { max-width: 100%; display: block; }
 @media (hover: none), (prefers-reduced-motion: reduce) { .amb__petal { display: none; } }
 
 /* -- the stage: a 9:16 card, because the film is 9:16 --------------------- */
+/* height is set from JS (see viewportH in scroll-film.js) — dvh is only the
+   fallback for the first paint, before the script measures. */
 .stagewrap {
-  position: fixed; inset: 0; z-index: 2;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 2;
+  height: 100dvh;
   display: grid; place-items: center;
   pointer-events: none;
 }
