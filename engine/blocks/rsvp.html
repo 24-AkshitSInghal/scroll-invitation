@@ -1,0 +1,39 @@
+<div class="rsvp">
+  <h2 class="rsvp__title">{{rsvp.title}}</h2>
+  <p class="rsvp__sub">{{rsvp.deadline}}</p>
+
+  <form class="rsvp__form" novalidate>
+    <div class="field">
+      <label for="rsvp-name">{{rsvp.nameLabel}}</label>
+      <input id="rsvp-name" name="name" type="text" autocomplete="name"
+             placeholder="{{rsvp.namePlaceholder}}" required>
+    </div>
+
+    <fieldset class="fieldset">
+      <legend>{{rsvp.attendLabel}}</legend>
+      <div class="choices">
+        <label class="choice">
+          <input type="radio" name="attending" value="yes" checked>
+          <span>{{rsvp.yes}}</span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="attending" value="no">
+          <span>{{rsvp.no}}</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <label for="rsvp-msg">{{rsvp.messageLabel}} <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+      <textarea id="rsvp-msg" name="message" rows="2" placeholder="{{rsvp.messagePlaceholder}}"></textarea>
+    </div>
+
+    <button class="btn btn--gold" type="submit">{{rsvp.submit}}</button>
+    <a class="btn btn--ghost js-wa" href="#" hidden>Reply on WhatsApp</a>
+  </form>
+
+  <div class="rsvp__done" hidden>
+    <p class="display">Thank you, <span class="rsvp__done-name">friend</span>.</p>
+    <p>{{rsvp.thanks}}</p>
+  </div>
+</div>

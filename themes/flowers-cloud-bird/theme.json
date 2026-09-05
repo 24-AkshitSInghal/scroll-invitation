@@ -1,0 +1,101 @@
+{
+  "name": "Flowers, Clouds & Birds",
+  "note": "Daytime. Ivory cloud, champagne gold, blush and deep magenta, sage. Two paradise flycatchers guide a continuous forward flight through a floral world above the clouds.",
+
+  "frameCount": 56,
+  "crossfade": 0.16,
+
+  "palette": {
+    "--ivory": "#f7f1e6",
+    "--ivory-deep": "#efe4d2",
+    "--cream": "#fffaf2",
+    "--gold": "#b8934c",
+    "--gold-deep": "#8a6830",
+    "--gold-soft": "#d9bd85",
+    "--gold-bright": "#e7cf9a",
+    "--blush": "#e6b3bd",
+    "--magenta": "#8e2f4c",
+    "--magenta-soft": "#b8546f",
+    "--sage": "#93a184",
+    "--ink": "#3c3026",
+    "--ink-soft": "#5a4c3e",
+    "--tag-ink": "#7d2340",
+    "--tag-hash": "#a8842f"
+  },
+
+  "fonts": {
+    "google": "Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@1,500;1,600;1,700&family=Jost:wght@300;400;500",
+    "--font-display": "'Cormorant Garamond', 'Iowan Old Style', 'Palatino', Georgia, serif",
+    "--font-tag": "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
+    "--font-body": "'Jost', ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+  },
+
+  "//anchors": [
+    "Where overlays sit ON PAINTED ARTWORK, as a fraction of the PICTURE (not the",
+    "stage — a phone crops the film at the sides). Measured off the real frames;",
+    "open the built site with ?grid to read new ones off a percentage overlay.",
+    "Every one of these is specific to THIS theme's clips."
+  ],
+  "anchors": {
+    "--a-tag-y": 0.775,
+    "--a-portrait-x": 0.505,
+    "--a-portrait-y": 0.422,
+    "--a-portrait-w": 0.47,
+    "--a-names-y": 0.8,
+    "--a-reveal-x": 0.4935,
+    "--a-reveal-y": 0.4776,
+    "--a-reveal-w": 0.735,
+    "--a-rsvp-y": 0.489,
+    "--a-rsvp-w": 0.58,
+    "--a-rsvp-h": 0.6
+  },
+
+  "//scenes": [
+    "clip  — which frame sequence (themes/<theme>/frames/<clip>)",
+    "block — which copy template from engine/blocks",
+    "from/to — the SLICE of the clip this scene owns; consecutive slices of one",
+    "          clip keep the film running instead of freezing on a held frame",
+    "scroll/settle/linger/copy/anchored — pacing; see engine/js/scroll-film.js"
+  ],
+  "scenes": [
+    { "id": "open", "label": "Welcome", "block": "open", "clip": "c1",
+      "place": "center", "scrim": "own",
+      "scroll": 2.0, "settle": 0.70, "copy": [-0.05, -0.01, 1, 1] },
+
+    { "id": "couple", "label": "The Couple", "block": "couple", "clip": "c2",
+      "place": "center",
+      "scroll": 2.1, "linger": 0.35, "to": 0.72, "copy": [0.40, 0.58, 0.90, 1] },
+
+    { "id": "portrait", "label": "The Two of Us", "block": "portrait", "clip": "c2",
+      "place": "fill", "anchored": true,
+      "scroll": 2.3, "from": 0.72, "copy": [0.14, 0.34, 0.90, 1] },
+
+    { "id": "family", "label": "Our Families", "block": "family", "clip": "c3",
+      "place": "center",
+      "scroll": 2.1, "linger": 0.35, "copy": [0.42, 0.60, 0.92, 1] },
+
+    { "id": "savethedate", "label": "Save the Date", "block": "savethedate", "clip": "c4",
+      "place": "fill", "anchored": true,
+      "scroll": 2.6, "settle": 0.42, "copy": [0.38, 0.50, 1, 1] },
+
+    { "id": "ceremony", "label": "The Ceremony", "block": "ceremony", "clip": "c5",
+      "place": "center",
+      "scroll": 2.4, "linger": 0.35, "copy": [0.38, 0.56, 0.94, 1] },
+
+    { "id": "venue", "label": "The Venue", "block": "venue", "clip": "c6",
+      "place": "lower",
+      "scroll": 2.5, "linger": 0.35, "copy": [0.42, 0.60, 0.96, 1] },
+
+    { "id": "rsvp", "label": "RSVP", "block": "rsvp", "clip": "c7",
+      "place": "fill", "anchored": true,
+      "scroll": 2.9, "settle": 0.34, "copy": [0.34, 0.46, 0.94, 1] },
+
+    { "id": "blessing", "label": "Blessings", "block": "finale", "clip": "c8",
+      "place": "center",
+      "scroll": 2.9, "to": 0.70, "copy": [0.44, 0.60, 0.90, 1] },
+
+    { "id": "hosts", "label": "With Love", "block": "hosts", "clip": "c8",
+      "place": "center",
+      "scroll": 2.4, "from": 0.70, "copy": [0.30, 0.50, 1, 1] }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "theme": "flowers-cloud-bird",
+
+  "site": {
+    "title": "Dr. Shubhanu & Dr. Shubhangi — Engagement Invitation",
+    "description": "With the blessings of our families — the engagement and roka ceremony of Dr. Shubhanu Tayal and Dr. Shubhangi Bansal. 21 September 2026, The Mansion Banquet, Meerut.",
+    "ogImage": "assets/frames/c2/056.webp"
+  },
+
+  "couple": {
+    "groom": "Dr. Shubhanu Tayal",
+    "bride": "Dr. Shubhangi Bansal",
+    "groomShort": "Shubhanu",
+    "brideShort": "Shubhangi",
+    "shortPair": "Dr. Shubhanu & Dr. Shubhangi"
+  },
+  "hashtag": "ShubhMilan",
+
+  "open": {
+    "eyebrow": "You are invited",
+    "lede": "A celebration written in the clouds.",
+    "cue": "Scroll to begin"
+  },
+
+  "coupleBlock": {
+    "eyebrow": "Together with our families",
+    "lede": "Two hearts, one beautiful beginning."
+  },
+
+  "family": {
+    "eyebrow": "With the blessings of our families",
+    "groomRole": "Son of",
+    "groomParents": "Mr. Narendra Tayal<br>&amp; Mrs. Seema Tayal",
+    "brideRole": "Daughter of",
+    "brideParents": "Dr. Dushyant Bansal<br>&amp; Dr. Renu Bansal"
+  },
+
+  "event": {
+    "name": "Engagement &amp; Roka Ceremony",
+    "dateISO": "2026-09-21",
+    "dateBig": "21",
+    "dateRest": "September 2026",
+    "dateStacked": "September<br>2026",
+    "weekday": "Monday",
+    "time": "5:00 PM onwards",
+    "startUTC": "20260921T113000Z",
+    "endUTC": "20260921T163000Z",
+    "saveLabel": "Save the Date",
+    "revealLabel": "Reveal the date"
+  },
+
+  "venue": {
+    "eyebrow": "The Venue",
+    "name": "The Mansion Banquet",
+    "address": "38/3, R.A., Near F Headquarter Road<br>NH58, Ansal&rsquo;s Sushant City<br>Meerut, Uttar Pradesh",
+    "mapQuery": "The Mansion Banquet, 38/3 R.A, Near F Headquarter Road, NH58, Ansal's Sushant City, Meerut, Uttar Pradesh",
+    "mapLabel": "Open map"
+  },
+
+  "rsvp": {
+    "title": "Will you join us?",
+    "deadline": "Kindly respond by 10 September 2026",
+    "nameLabel": "Your name",
+    "namePlaceholder": "Full name",
+    "attendLabel": "Will you attend?",
+    "yes": "Yes",
+    "no": "No",
+    "messageLabel": "A note for the couple",
+    "messagePlaceholder": "Your blessings…",
+    "submit": "Send my RSVP",
+    "thanks": "Your response is with us. We cannot wait to celebrate together.",
+    "endpoint": null,
+    "whatsapp": null
+  },
+
+  "finale": {
+    "line": "Your presence will make<br>our celebration complete"
+  },
+
+  "hosts": {
+    "line": "With love &amp; blessings",
+    "eyebrow": "Heartily welcome by",
+    "family": "Tayal Family",
+    "phones": [
+      { "display": "9557723663", "tel": "+919557723663" },
+      { "display": "7900970001", "tel": "+917900970001" }
+    ]
+  },
+
+  "photo": { "src": "couple.jpg", "width": 760, "height": 1188 },
+  "logo": "monogram.png",
+
+  "music": { "file": "song", "title": "Kudmayi", "volume": 0.55 },
+
+  "room": {
+    "eyebrow": "You are invited",
+    "meta": "The Mansion Banquet<br>Meerut, Uttar Pradesh",
+    "hint": "Scroll to move the film"
+  }
+}
