@@ -96,8 +96,38 @@ const sections = theme.scenes.map((sc) => {
 /* -- runtime config -------------------------------------------------------- */
 /* Only what the engine actually reads. The copy is already baked into the HTML,
    so none of it ships twice. */
+const clamp01 = (n) => Math.max(0, Math.min(1, n));
+const lingerEase = (t, k) => k
+  ? clamp01(0.5 + (t - 0.5) * (1 - k) + k * 4 * (t - 0.5) ** 3)
+  : t;
+let scrollOffset = 0;
+const posters = [];
+for (const sc of theme.scenes) {
+  const width = sc.scroll || theme.diveScroll;
+  const locals = sc.stops || [clamp01(sc.copy ? sc.copy[1] : 0.5)];
+  for (const local of locals) {
+    const f0 = sc.from != null ? sc.from : 0;
+    const f1 = sc.to != null ? sc.to : 1;
+    const position = f0 + (f1 - f0) * clamp01(lingerEase(local, sc.linger || 0) / (sc.settle || 1));
+    posters.push({
+      y: scrollOffset + width * local,
+      source: join(themeDir, 'frames-720', sc.clip,
+                   String(Math.round(position * (theme.frameCount - 1)) + 1).padStart(3, '0') + '.webp'),
+    });
+  }
+  scrollOffset += width;
+}
+posters.sort((a, b) => a.y - b.y);
+
 const runtime = {
   frameCount: theme.frameCount,
+  video: {
+    fps: 24,
+    framesPerClip: theme.frameCount,
+    high: `assets/video/invitation-720.mp4?v=${ctx.build}`,
+    lite: `assets/video/invitation-540.mp4?v=${ctx.build}`,
+    posters: posters.map((_, i) => `assets/posters/${String(i).padStart(2, '0')}.webp?v=${ctx.build}`),
+  },
   crossfade: theme.crossfade,
   music: client.music
     ? { src: `assets/${client.music.file}.m4a`, srcFallback: `assets/${client.music.file}.mp3`,
@@ -113,7 +143,7 @@ const runtime = {
   rsvp: { endpoint: client.rsvp.endpoint ?? null, whatsapp: client.rsvp.whatsapp ?? null },
   sections: theme.scenes.map((sc) => ({
     id: sc.id, label: sc.label,
-    frames: `assets/frames/${sc.clip}`,
+    clip: sc.clip,
     scroll: sc.scroll, settle: sc.settle ?? 1, linger: sc.linger ?? 0,
     ...(sc.from != null ? { from: sc.from } : {}),
     ...(sc.to != null ? { to: sc.to } : {}),
@@ -145,13 +175,25 @@ writeFileSync(join(out, 'index.html'), html);
 cpSync(join(ROOT, 'engine', 'css'), join(out, 'css'), { recursive: true });
 cpSync(join(ROOT, 'engine', 'js'), join(out, 'js'), { recursive: true });
 
-// Only the tiers that exist — a theme may ship one while the other is rendering
-for (const tier of ['frames', 'frames-720']) {
-  const src = join(themeDir, tier);
-  if (existsSync(src)) cpSync(src, join(out, 'assets', tier), { recursive: true });
-  else if (tier === 'frames') die(`theme "${client.theme}" has no frames/ — run tools/frames.sh`);
-  else console.warn(`  ! no ${tier}/ in this theme — every device will take the full-size film`);
+const posterDir = join(out, 'assets', 'posters');
+mkdirSync(posterDir, { recursive: true });
+posters.forEach((poster, i) => {
+  if (!existsSync(poster.source)) die(`missing poster source ${poster.source.replace(ROOT + '/', '')}`);
+  cpSync(poster.source, join(posterDir, String(i).padStart(2, '0') + '.webp'));
+});
+// Existing client files may use a film frame as their social sharing image.
+// Keep that one authored asset without shipping all 448 runtime frames.
+if (client.site?.ogImage?.startsWith('assets/frames/')) {
+  const relative = client.site.ogImage.slice('assets/'.length);
+  const source = join(themeDir, relative);
+  const destination = join(out, client.site.ogImage);
+  if (!existsSync(source)) die(`missing social image ${source.replace(ROOT + '/', '')}`);
+  mkdirSync(dirname(destination), { recursive: true });
+  cpSync(source, destination);
 }
+const videoDir = join(themeDir, 'video');
+if (existsSync(videoDir)) cpSync(videoDir, join(out, 'assets', 'video'), { recursive: true });
+else die(`theme "${client.theme}" has no video/ — run tools/timeline-video.sh ${client.theme}`);
 cpSync(join(clientDir, 'assets'), join(out, 'assets'), { recursive: true });
 cpSync(join(ROOT, 'vercel.json'), join(out, 'vercel.json'));
 

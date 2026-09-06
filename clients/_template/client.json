@@ -16,7 +16,7 @@
   "open": {
     "eyebrow": "You are invited",
     "lede": "A celebration written in the clouds.",
-    "cue": "Tap next to begin"
+    "cue": "Swipe up to begin"
   },
   "coupleBlock": {
     "eyebrow": "Together with our families",
@@ -92,7 +92,7 @@
   "room": {
     "eyebrow": "You are invited",
     "meta": "Venue Name<br>City, State",
-    "hint": "Use next and back to move through it"
+    "hint": "Scroll or swipe to move through it"
   },
   "url": "your-site.vercel.app"
 }

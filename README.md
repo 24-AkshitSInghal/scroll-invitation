@@ -1,8 +1,8 @@
 # Scroll invitations — one repo, many sites
 
-A scroll-driven invitation where the camera flies through a rendered world as you
-scroll. One codebase, any number of **themes** (films) and **clients** (people),
-each deployed as its own site.
+A swipe- and wheel-driven invitation where the camera flies through a
+rendered world. One codebase, any number of **themes** (films) and **clients**
+(people), each deployed as its own site.
 
 ```bash
 node tools/build.mjs tayal     # → dist/
@@ -16,7 +16,7 @@ cd dist && python3 -m http.server 4173
 |  | what it is | changes when |
 |---|---|---|
 | `engine/` | renderer, base CSS, page shell, copy blocks | you improve the product |
-| `themes/` | a film: frame sequences, palette, anchors, pacing | you commission new artwork |
+| `themes/` | a film: source frames, web videos, palette, anchors, pacing | you commission new artwork |
 | `clients/` | names, dates, venue, phones, logo, photo, song | you sign someone |
 
 **Onboarding a client should touch `clients/` only.** If it doesn't, that's a gap
@@ -30,13 +30,14 @@ engine/
   js/{film,scroll-film,interactions}.js
 themes/<theme>/
   theme.json          palette · anchors · scene list · pacing
-  frames/             1080×1920 WebP, 56 per clip
-  frames-720/         720×1280, what every phone actually gets
+  frames-720/         source frames used to build the web film and posters
+  video/              720p + 540p H.264 timelines used by the site
 clients/<client>/
   client.json         all the words and dates
   assets/             monogram.png · couple.jpg · song.m4a + song.mp3
 tools/
   frames.sh           clips → frame sequences
+  timeline-video.sh   ordered frames → hardware-decodable web films
   build.mjs           engine + theme + client → dist/
 ```
 
@@ -101,14 +102,12 @@ which is the entire risk in this business. Routes under a shared project would
 mean one deployment for everybody and a middleware layer to split domains.
 Projects are free; blast radius is not.
 
-**Bandwidth.** A visitor downloads one tier — ~17MB on a phone, ~26MB on desktop
-— once, then it is `immutable` for a year. Vercel's free 100GB/month is roughly
-6,000 phone visits across all projects combined. A wedding is a few hundred.
+**Bandwidth.** A visitor downloads one tier — 4.6MB on a constrained device or
+8MB on a capable one — once, plus the client's music and images. Static assets
+are immutable and served from Vercel's CDN.
 
-**Repo size.** Each theme is ~45MB of frames across both tiers, committed. That
-is fine for a handful of themes. Past roughly ten, move `themes/*/frames*` to Git
-LFS or to a bucket that `build.mjs` pulls from — the build already treats frames
-as a copy step, so that swap is local to one function.
+**Repo size.** Source frames stay in the theme so films can be regenerated, but
+`dist/` contains only the two MP4s and 11 stop posters—not all 448 frames.
 
 ---
 
@@ -131,10 +130,11 @@ the previous one's actual last frame, so the joins are frame-identical and the
 whole thing reads as one unbroken flight. That property is what the engine is
 built on; a theme that doesn't have it will show cuts.
 
-1. **Frames.** Both tiers, always:
+1. **Frames and web video.** Generate the 720p source frames, then encode the two
+   delivery tiers:
    ```bash
-   THEME=my-theme ./tools/frames.sh path/to/clips
    THEME=my-theme W=720 ./tools/frames.sh path/to/clips
+   ./tools/timeline-video.sh my-theme
    # PATTERN='clip%d_a.mp4' if the files aren't named clipN.mp4
    ```
 2. **`theme.json`.** Copy an existing one. Set the palette, then list the scenes:
@@ -144,8 +144,8 @@ built on; a theme that doesn't have it will show cuts.
    photograph in a wreath) is positioned as a fraction of the **picture**, and
    those fractions are specific to your clips. Build the theme, open it with
    **`?grid`**, and read them off the percentage rule laid over the film.
-4. **Watch it.** Pacing copied from another theme means nothing until you scroll
-   it. `scroll` is how long a scene lasts, `settle` brings the camera to a stop
+4. **Watch it.** Pacing copied from another theme means nothing until you move
+   through it. `scroll` is the scene's virtual span, `settle` brings the camera to a stop
    (only where someone has to tap or type), `linger` slows it through the middle
    without stopping, `from`/`to` give a scene a slice of its clip.
 
@@ -168,109 +168,56 @@ Current anchor variables: `--a-tag-y`, `--a-portrait-x/y/w`, `--a-names-y`,
 
 Everything below is a decision that came from a real failure, not a preference.
 
-### It is frames, not video
+### It is normal video, not video scrubbing
 
-Earlier builds scrubbed `<video>` by setting `currentTime`. On a desktop that is
-fine. On an iPhone it ran to about clip 4 and stopped: scrubbing asks a decoder
-to do the thing it is worst at — decode at an arbitrary point in a dependency
-chain, thousands of times — and decoders are a limited system resource. A scene
-whose decoder never came up sat on a still for the rest of the visit, and there
-was no recovering it.
+The old video implementation repeatedly set `currentTime` from scroll position.
+That is random seeking, which is expensive. The later WebP/canvas implementation
+avoided video seeking but replaced it with hundreds of JavaScript image decodes,
+large bitmap windows and a permanent paint loop. That traded one mobile bottleneck
+for another.
 
-So scroll picks an array index instead. **56 WebP frames per clip; 26MB for a
-whole film**, less than the mobile video tier it replaced. No seeking, no decoder,
-no codec state that can be wrong. The first and last frame of every sequence are
-the clip's true first and last, so the chain stays seam-exact.
+The current engine encodes all ordered theme frames into **one linear H.264
+timeline**. Moving forward calls `video.play()` and lets the browser present the
+frames at their natural 24fps cadence. JavaScript only updates text overlays when
+`requestVideoFrameCallback` (or its rAF fallback) reports a presented frame. At a
+stop the video pauses and JavaScript goes idle. Backward navigation performs one
+short-keyframe seek under a 180ms poster fade; it never tries to play video in
+reverse.
 
-Decoding all 448 frames would be 3.7GB, so `film.js` never does: frames are held
-as compressed Blobs, only a window around the playhead is decoded via
-`createImageBitmap` (off the main thread), and bitmaps outside the window are
-closed. If the exact frame isn't ready the renderer draws the nearest one that
-is — a fast flick degrades to a slightly stale frame, never a stall.
+This is the important distinction: native video is the fast path; continuously
+scrubbing native video is not.
 
-### Two tiers, and why
+### Two delivery tiers
 
-`frames-720` exists because **decode cost scales with source pixels, not with the
-size you draw at** — `createImageBitmap` decodes the whole 1080 image before
-resizing it. A phone drawing into a 720-wide canvas was paying 2.25× for detail
-it then threw away. Every touch device takes the light tier; desktop keeps 1080.
-`?q=lite` / `?q=hi` force either, which is the only honest way to compare on a
-real device.
+Both files are H.264 Main Profile, level 3.1, `yuv420p`, 24fps and fast-start for
+broad Safari/Chrome/Samsung compatibility. The normal tier is 720×1280 (~8MB),
+and the constrained tier is 540×960 (~4.6MB). Save Data, slow connections,
+4GB-or-less devices, four-core-or-less devices, or a negative Media Capabilities
+result select the light tier. `?q=lite` and `?q=hi` remain manual overrides.
 
 ### The gate
 
-Everything loads behind **Open Invitation**. It costs a wait, but it is the only
-way to promise the scroll never stutters — and the tap is a real user gesture,
-which is also the one moment iOS will reliably let the music start.
+The selected MP4 loads completely behind **Open Invitation**. It costs a short
+wait, but removes network stalls from the story. The tap is also the user gesture
+that lets music start reliably on mobile browsers.
 
-### Two buttons, and why they are the fast path
+### Stops and gestures
 
-The page does not scroll and has no swipe gesture. `html, body` are
-`overflow: hidden`, the track is 0px tall, and the film moves only when **Back**
-or **Next** is pressed (arrow keys and the rail are wired too).
+The page uses fixed story stops rather than binding every touchmove pixel to a
+media seek. A completed vertical swipe or wheel/trackpad gesture moves exactly
+one stop regardless of gesture distance; arrow keys and the rail work too. An
+inertia lock prevents one strong flick from skipping several stops. No film work
+runs in the browser's input-critical touchmove path.
 
 A theme declares where the film comes to rest. Every scene contributes one stop —
 the middle of its copy window — and a scene may name its own with
 `"stops": [0.02, 0.96]`, which is how the opening holds twice: once on the
 greeting, once on the monogram after it has drawn itself.
 
-The buttons are not only an affordance. Standing at a stop there are exactly two
-places to go, both known, and the reader is reading — so `warmNeighbours()`
-decodes into both while nothing is happening. A swipe could never promise that,
-because the destination was not known until the finger lifted.
-
-Transitions run 1.5–4.2s. A slower camera is not just better-looking, it is
-cheaper: the same frames spread over more time is a lower demand on the decoder.
-
-### What actually made it fast
-
-Three findings, all measured on this film. The first two were bugs.
-
-**Never resize during decode.** The engine decoded every frame to the canvas
-height. On the 720 tier that is an *upscale*, and it dominated the whole budget:
-
-| decode | cost |
-| --- | --- |
-| 956×1700, upscaled from the 720 tier | 12.3ms |
-| 506×900, downscaled from the 720 tier | 6.4ms |
-| 720×1280, native, no resize options | **2.8ms** |
-
-Both resized cases lose, in opposite directions, for the same reason: the
-resampler is the expensive part, not the pixel count. The GPU upscales for free
-at `drawImage`, so decode should hand it the file as it is. `applyDecodeSize()`
-now passes no resize options unless the source is genuinely taller than the
-canvas — only the 1920 tier on a small screen. **4.4× on the hottest operation
-in the app.**
-
-**Free what was warmed but never shown.** `window()` only runs for a sequence
-being *painted*, so frames the engine decoded ahead along a path and then did not
-use stayed resident for the whole visit — 134MB at rest. Sequences are now
-released once they are neither on screen nor on their way there.
-
-**But release lazily.** Freeing a sequence the moment it stops being painted was
-much worse: on a long jump scenes flick in and out of visibility, and each
-reappearance re-decoded its entire window. That thrash took the render loop from
-60fps to 2. `IDLE_RELEASE` holds frames for 2s after a scene leaves the screen.
-
-Net: 134MB → 39MB at rest, 190MB → 98MB peak, and no held frames on any
-transition.
-
-### The camera may slow down; it may never stop
-
-`advance()` only lets the clock run when the frame it is about to show exists, so
-a slow decoder slows the camera instead of making it skip. That hold has to be
-**bounded**. Unbounded, a jump across the whole film — a rail dot, or `End` —
-crosses more scenes than can be decoded at any speed, and the flight did not slow
-down, it stopped: twelve seconds in, still moving, 617 held frames.
-
-After `STALL_MAX` (140ms) on one frame it proceeds regardless, and `nearest()`
-draws the closest frame that does exist. A slightly stale frame, never a stall —
-which is the degradation this design was always meant to have.
-
-`HEAD_START` decodes the first fifth of a path before the transition is allowed
-to begin, capped at 900ms. Without it the film sets off, immediately runs out of
-frames and is held right at the moment attention is highest. Waiting a beat first
-is invisible; stumbling is not.
+The engine checks `getVideoPlaybackQuality()` after transitions. If a device
+still drops more than 12% of presented frames, it automatically switches the
+rest of the invitation to exact static stop posters. Reduced-motion users start
+in that mode. A calm, fully usable card is better degradation than repeated lag.
 
 ### Video-space coordinates
 
@@ -282,12 +229,10 @@ which the engine recomputes on every layout. Use those, never plain percentages.
 
 ### The phone's URL bar
 
-It slides away on first scroll and the viewport grows ~80px mid-scroll, sometimes
-with no resize event at all. The stage height comes from `--vph`, published by
-`measure()` from `visualViewport`, and the render loop re-measures whenever the
-height changes — so the canvas can never fall out of step. `measure()` runs on
-any resize; the full `layout()` that rebuilds scroll bands only on a width change,
-because rebuilding bands mid-scroll yanks the reader's position.
+It can slide away and change the viewport height, sometimes with no window resize
+event. The stage height comes from `--vph`, published by `measure()` from
+`visualViewport`. Those events are coalesced into a single animation-frame
+measurement; there is no permanent render loop.
 
 ### Things that quietly swallowed the scroll
 
@@ -297,9 +242,8 @@ Both cost real usability before they were found, and both are easy to reintroduc
   a swipe starting on it could not scroll the page. It is a **button** now.
 - The RSVP card had `overscroll-behavior: contain` with nothing to scroll inside
   it, so swipes over the form went nowhere.
-- `OWNED` once listed `.reveal` and `.rsvp`, which exempted a third of the screen
-  from swipe navigation. Swipe is gone now — the buttons cannot be intercepted by
-  whatever happens to be under the thumb, which is half of why they are there.
+- Swipes beginning on a real input, button or link are intentionally left to that
+  control. Everywhere else, the direction is interpreted after touchend.
 
 Three times the failure was an overlay quietly claiming the middle of the screen.
 Named controls in a bar of their own end the whole category.
@@ -326,14 +270,13 @@ strip.
 ## Regenerating a film
 
 ```bash
-THEME=<theme> ./tools/frames.sh <clips-dir>          # 1080
-THEME=<theme> W=720 ./tools/frames.sh <clips-dir>    # 720
-N=72 THEME=<theme> ./tools/frames.sh <clips-dir>     # finer, more bytes
+THEME=<theme> W=720 ./tools/frames.sh <clips-dir>
+./tools/timeline-video.sh <theme>
 ```
 
-Both tiers, every time, or phones will show a stale film. `N` frames span each
-clip's true first and last frame whatever you choose, so the chain stays
-seam-exact — set the same number as `frameCount` in `theme.json`.
+The timeline tool produces both browser delivery tiers. `frameCount` in
+`theme.json` must match the frames per clip. The build copies the videos and only
+the exact stills needed at story stops.
 
 ## The shareable video
 

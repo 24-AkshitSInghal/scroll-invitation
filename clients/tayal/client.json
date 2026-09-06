@@ -20,7 +20,7 @@
   "open": {
     "eyebrow": "You are invited",
     "lede": "A celebration written in the clouds.",
-    "cue": "Tap next to begin"
+    "cue": "Swipe up to begin"
   },
 
   "coupleBlock": {
@@ -98,6 +98,6 @@
   "room": {
     "eyebrow": "You are invited",
     "meta": "The Mansion Banquet<br>Meerut, Uttar Pradesh",
-    "hint": "Use next and back to move through it"
+    "hint": "Scroll or swipe to move through it"
   }
 }

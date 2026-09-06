@@ -6,17 +6,9 @@
 #
 # Writes themes/<theme>/frames (1080) or frames-720. PATTERN sets the source
 # filename when a theme's clips aren't named clipN.mp4, e.g. PATTERN='clip%d_a.mp4'.
-# Run BOTH widths for every theme — phones take the 720 tier.
-#
-# Two tiers because decode cost scales with SOURCE pixels, not with the size you
-# draw at: createImageBitmap has to decode the whole 1080 image before it can
-# resize it down. A budget phone drawing into a 720-wide canvas was paying 2.25x
-# for detail it then threw away.
-#
-# Why frames instead of video: scrubbing means seeking to arbitrary times, and on
-# iOS that is both slow and unreliable — decoders are a limited resource and a
-# scene that fails to decode is stranded on a still. Frames have no seek, no
-# decoder, no codec state: scroll position picks an array index.
+# The interactive site needs the 720 tier; timeline-video.sh turns it into 720p
+# and 540p H.264 files and build.mjs extracts only the exact stop posters.
+# Keeping 1080 frames is optional source/archive material, not a delivery tier.
 #
 # The first and last frame of every sequence are the clip's true first and last
 # frames, so the chain stays seam-exact.
