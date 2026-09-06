@@ -112,6 +112,11 @@ window.Film = (function () {
   Player.prototype.cancel = function () {
     this.token++;
     this.video.pause();
+    // End any flight in progress now. Bumping the token alone is not enough:
+    // that is only noticed inside the rAF tick, and rAF does not run on a hidden
+    // page — which is exactly when cancelling matters most.
+    const stop = this.abortCurrent;
+    if (stop) { this.abortCurrent = null; stop(); }
   };
 
   Player.prototype.seek = async function (time) {
@@ -142,6 +147,7 @@ window.Film = (function () {
       const clean = () => {
         if (raf) cancelAnimationFrame(raf);
         if (watchdog) clearTimeout(watchdog);
+        if (this.abortCurrent === abort) this.abortCurrent = null;
         video.removeEventListener('error', fail);
         video.removeEventListener('ended', finish);
       };
@@ -183,6 +189,7 @@ window.Film = (function () {
         else raf = requestAnimationFrame(tick);
       };
 
+      this.abortCurrent = abort;
       video.addEventListener('error', fail, { once: true });
       video.addEventListener('ended', finish, { once: true });
       video.playbackRate = 1;
