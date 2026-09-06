@@ -65,7 +65,9 @@
            by dedicated hardware. The image stays underneath as the opening
            poster and as the no-motion / failed-playback fallback. -->
       <img class="film film--fallback" src="assets/posters/00.webp?v={{build}}" alt="" aria-hidden="true">
-      <video class="film film--video" muted playsinline webkit-playsinline preload="none"
+      <video class="film film--video film--forward is-active" muted playsinline webkit-playsinline preload="none"
+             disablepictureinpicture aria-hidden="true"></video>
+      <video class="film film--video film--reverse" muted playsinline webkit-playsinline preload="none"
              disablepictureinpicture aria-hidden="true"></video>
 
       <div class="copylayer">

@@ -2,7 +2,7 @@
    scroll-film.js — stopped story navigation over one native video timeline
    ----------------------------------------------------------------------------
    A swipe, wheel gesture or key advances one intentional story stop. The
-   film itself is a single H.264 video and plays forward normally between stops;
+   film uses forward and reverse H.264 timelines that both play normally;
    there is no per-frame seeking, canvas painting or permanent animation loop.
    ========================================================================== */
 
@@ -30,15 +30,30 @@
   const roomCount = $('.room__count');
   const roomScene = $('.room__scene');
   const roomOf = $('.room__of');
-  const video = $('.film--video');
+  const forwardVideo = $('.film--forward');
+  const reverseVideo = $('.film--reverse');
   const fallback = $('.film--fallback');
-  const player = new Film.Player(video, cfg.video);
+  const forwardPlayer = new Film.Player(forwardVideo, cfg.video);
+  const reversePlayer = new Film.Player(reverseVideo, {
+    ...cfg.video,
+    high: cfg.video.reverseHigh,
+    lite: cfg.video.reverseLite,
+  });
 
   if (roomOf) roomOf.textContent = '/ ' + String(SECTIONS.length).padStart(2, '0');
 
   const clipOrder = [];
   SECTIONS.forEach((s) => { if (!clipOrder.includes(s.clip)) clipOrder.push(s.clip); });
   const clips = new Map(clipOrder.map((name, i) => [name, i]));
+  const frameCount = cfg.video.framesPerClip || cfg.frameCount || 56;
+  const fps = cfg.video.fps || 24;
+  const timelineLast = (clipOrder.length * frameCount - 1) / fps;
+  const reverseTime = (time) => Math.max(0, timelineLast - time);
+
+  function showDirection(backward) {
+    forwardVideo.classList.toggle('is-active', !backward);
+    reverseVideo.classList.toggle('is-active', backward);
+  }
 
   let vh = innerHeight;
   let laidOutW = innerWidth;
@@ -88,10 +103,9 @@
   function timelineTimeAt(y) {
     const found = sceneFrameAt(y);
     if (!found) return 0;
-    const count = cfg.video.framesPerClip || cfg.frameCount || 56;
     const clip = clips.get(found.scene.cfg.clip) || 0;
-    const frame = clip * count + found.position * (count - 1);
-    return frame / (cfg.video.fps || 24);
+    const frame = clip * frameCount + found.position * (frameCount - 1);
+    return frame / fps;
   }
 
   function fallbackAt(y) {
@@ -207,49 +221,84 @@
     moving = false;
   }
 
+  function syncMedia(time) {
+    return Promise.all([
+      forwardPlayer.seek(time),
+      reversePlayer.seek(reverseTime(time)),
+    ]);
+  }
+
   async function goTo(index, instant) {
     index = Math.max(0, Math.min(stops.length - 1, Math.round(index)));
     if (!stops.length || moving || index === cur) return;
 
     const previous = cur;
+    const backward = index < previous;
     const fromY = viewY;
     const toY = stops[index].y;
-    const fromTime = player.ready ? video.currentTime : timelineTimeAt(fromY);
+    const fromTime = timelineTimeAt(fromY);
     const toTime = stops[index].time;
     cur = index;
     moving = true;
 
-    const mustSeek = instant || reduce || mediaFailed || !player.ready || index < previous || toTime <= fromTime;
+    const bothReady = forwardPlayer.ready && reversePlayer.ready;
+    const mustSeek = instant || reduce || mediaFailed || !bothReady;
     if (mustSeek) {
-      if (index < previous && player.ready && !mediaFailed) stage.classList.add('is-seeking');
-      if (player.ready && !mediaFailed) await player.seek(toTime);
+      if (bothReady && !mediaFailed) await syncMedia(toTime);
+      showDirection(backward);
       settleAt(index);
-      requestAnimationFrame(() => stage.classList.remove('is-seeking'));
       return;
     }
 
     try {
-      await player.playTo(toTime, (now) => {
-        const p = clamp((now - fromTime) / Math.max(0.001, toTime - fromTime));
+      const activePlayer = backward ? reversePlayer : forwardPlayer;
+      const startMediaTime = backward ? reverseTime(fromTime) : fromTime;
+      const endMediaTime = backward ? reverseTime(toTime) : toTime;
+      await activePlayer.seek(startMediaTime);
+      showDirection(backward);
+      await activePlayer.playTo(endMediaTime, (now) => {
+        const timelineNow = backward ? reverseTime(now) : now;
+        const p = clamp((timelineNow - fromTime) / (toTime - fromTime));
         viewY = fromY + (toY - fromY) * p;
         read();
       });
+      await syncMedia(toTime);
       settleAt(index);
 
       // If a device cannot present even this conservative video reliably, stop
       // animating rather than repeatedly making the visitor endure dropped
       // frames. Navigation still works using exact static frames.
-      const quality = player.quality();
+      const quality = activePlayer.quality();
       if (quality && quality.total >= 48 && quality.dropped / quality.total > 0.12) {
         mediaFailed = true;
         stage.classList.add('film-static');
       }
     } catch (e) {
-      mediaFailed = true;
-      stage.classList.add('film-static');
+      // Only a real media failure earns the static fallback; an interrupted
+      // transition just lands on the stop it was heading for.
+      if (!e || !e.aborted) {
+        mediaFailed = true;
+        stage.classList.add('film-static');
+      } else if (forwardPlayer.ready && reversePlayer.ready) {
+        await syncMedia(stops[index].time).catch(() => {});
+        showDirection(false);
+      }
       settleAt(index);
     }
   }
+
+  /* Leaving the page mid-transition pauses the media clock and stops rAF. End
+     the flight deliberately rather than letting it hang until a timeout decides
+     the device is at fault, and put both timelines back on the current stop on
+     return so the next move starts from the right frame. */
+  addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (moving) { forwardPlayer.cancel(); reversePlayer.cancel(); }
+      return;
+    }
+    if (moving || mediaFailed || !forwardPlayer.ready || !reversePlayer.ready) return;
+    syncMedia(stops[cur].time).catch(() => {});
+  });
 
   addEventListener('keydown', (event) => {
     if (event.target && event.target.closest && event.target.closest('input,textarea,select')) return;
@@ -405,9 +454,18 @@
     showProgress(1);
     readyGate();
   } else {
-    player.prepare(showProgress)
-      .then(() => player.seek(stops[0].time))
+    const loads = [0, 0];
+    const report = (which, value) => {
+      loads[which] = value;
+      showProgress((loads[0] + loads[1]) / 2);
+    };
+    Promise.all([
+      forwardPlayer.prepare((value) => report(0, value)),
+      reversePlayer.prepare((value) => report(1, value)),
+    ])
+      .then(() => syncMedia(stops[0].time))
       .then(() => {
+        showDirection(false);
         stage.classList.add('film-ready');
         readyGate();
       })
@@ -420,13 +478,21 @@
   }
 
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  addEventListener('pagehide', () => player.destroy(), { once: true });
+  addEventListener('pagehide', () => {
+    forwardPlayer.destroy();
+    reversePlayer.destroy();
+  }, { once: true });
 
   window.FILM = {
     scenes, stops, layout, read, isMobile, goTo,
     at: () => cur,
     y: () => viewY,
     moving: () => moving,
-    media: () => ({ mode: player.mode, failed: mediaFailed, quality: player.quality() }),
+    media: () => ({
+      mode: forwardPlayer.mode,
+      failed: mediaFailed,
+      forward: forwardPlayer.quality(),
+      reverse: reversePlayer.quality(),
+    }),
   };
 })();

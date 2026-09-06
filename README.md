@@ -102,12 +102,12 @@ which is the entire risk in this business. Routes under a shared project would
 mean one deployment for everybody and a middleware layer to split domains.
 Projects are free; blast radius is not.
 
-**Bandwidth.** A visitor downloads one tier — 4.6MB on a constrained device or
-8MB on a capable one — once, plus the client's music and images. Static assets
+**Bandwidth.** A visitor downloads the forward and reverse files for one tier —
+about 9.3MB on a constrained device or 16MB on a capable one — once, plus the client's music and images. Static assets
 are immutable and served from Vercel's CDN.
 
 **Repo size.** Source frames stay in the theme so films can be regenerated, but
-`dist/` contains only the two MP4s and 11 stop posters—not all 448 frames.
+`dist/` contains only the four MP4s and 11 stop posters—not all 448 frames.
 
 ---
 
@@ -176,13 +176,12 @@ avoided video seeking but replaced it with hundreds of JavaScript image decodes,
 large bitmap windows and a permanent paint loop. That traded one mobile bottleneck
 for another.
 
-The current engine encodes all ordered theme frames into **one linear H.264
-timeline**. Moving forward calls `video.play()` and lets the browser present the
-frames at their natural 24fps cadence. JavaScript only updates text overlays when
-`requestVideoFrameCallback` (or its rAF fallback) reports a presented frame. At a
-stop the video pauses and JavaScript goes idle. Backward navigation performs one
-short-keyframe seek under a 180ms poster fade; it never tries to play video in
-reverse.
+The current engine encodes all ordered theme frames into matching **forward and
+reverse H.264 timelines**. Either direction calls `video.play()` and lets the
+browser present frames at their natural 24fps cadence. JavaScript runs a small
+boundary check only while media is moving, then goes idle at the stop. The
+reverse timeline avoids unsupported negative playback rates and makes backward
+navigation just as smooth and predictable as forward navigation.
 
 This is the important distinction: native video is the fast path; continuously
 scrubbing native video is not.
@@ -197,7 +196,7 @@ result select the light tier. `?q=lite` and `?q=hi` remain manual overrides.
 
 ### The gate
 
-The selected MP4 loads completely behind **Open Invitation**. It costs a short
+The selected forward/reverse pair loads completely behind **Open Invitation**. It costs a short
 wait, but removes network stalls from the story. The tap is also the user gesture
 that lets music start reliably on mobile browsers.
 

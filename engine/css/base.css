@@ -229,9 +229,8 @@ img { max-width: 100%; display: block; }
   opacity: 0;
   transition: opacity .18s ease;
 }
-.film-ready .film--video { opacity: 1; }
+.film-ready .film--video.is-active { opacity: 1; }
 .film-static .film--video { display: none; }
-.stage.is-seeking .film--video { opacity: 0; }
 @media (min-width: 861px) { .film { border-radius: 46px; } }
 
 /* -- the room around the phone --------------------------------------------- */

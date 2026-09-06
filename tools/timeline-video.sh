@@ -42,6 +42,18 @@ for CLIP in $CLIPS; do
   done
 done
 
+TOTAL=$((INDEX - 1))
+mkdir -p "$TMP_DIR/reverse"
+SOURCE_INDEX=$TOTAL
+REVERSE_INDEX=1
+while [ "$SOURCE_INDEX" -ge 1 ]; do
+  SOURCE=$(printf '%s/%04d.webp' "$TMP_DIR" "$SOURCE_INDEX")
+  TARGET=$(printf '%s/reverse/%04d.webp' "$TMP_DIR" "$REVERSE_INDEX")
+  ln -s "$SOURCE" "$TARGET"
+  SOURCE_INDEX=$((SOURCE_INDEX - 1))
+  REVERSE_INDEX=$((REVERSE_INDEX + 1))
+done
+
 mkdir -p "$OUT_DIR"
 
 # A half-second GOP makes backward jumps fast without turning every frame into
@@ -60,4 +72,17 @@ ffmpeg -hide_banner -loglevel warning -y \
   -pix_fmt yuv420p -g 12 -keyint_min 12 -sc_threshold 0 -movflags +faststart \
   "$OUT_DIR/invitation-540.mp4"
 
-echo "generated themes/$THEME/video (720p and 540p)"
+ffmpeg -hide_banner -loglevel warning -y \
+  -framerate 24 -start_number 1 -i "$TMP_DIR/reverse/%04d.webp" \
+  -an -c:v libx264 -preset slow -crf 23 -profile:v main -level 3.1 \
+  -pix_fmt yuv420p -g 12 -keyint_min 12 -sc_threshold 0 -movflags +faststart \
+  "$OUT_DIR/invitation-720-reverse.mp4"
+
+ffmpeg -hide_banner -loglevel warning -y \
+  -framerate 24 -start_number 1 -i "$TMP_DIR/reverse/%04d.webp" \
+  -vf "scale=540:960:flags=lanczos" \
+  -an -c:v libx264 -preset slow -crf 24 -profile:v main -level 3.1 \
+  -pix_fmt yuv420p -g 12 -keyint_min 12 -sc_threshold 0 -movflags +faststart \
+  "$OUT_DIR/invitation-540-reverse.mp4"
+
+echo "generated themes/$THEME/video (forward/reverse, 720p/540p)"

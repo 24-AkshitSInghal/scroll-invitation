@@ -5,7 +5,7 @@
    normally means hardware H.264 decode and compositor presentation, instead of
    allocating, decoding and repainting WebP bitmaps from JavaScript.
 
-   One small MP4 is fetched completely behind the opening curtain. Once the
+   Each direction's small MP4 is fetched completely behind the opening curtain. Once the
    invitation opens, a transition cannot pause for the network. JavaScript runs
    only while the video is moving and only updates the copy layer; it never
    repaints the film.
@@ -136,14 +136,14 @@ window.Film = (function () {
 
     return new Promise((resolve, reject) => {
       let raf = 0;
-      let vfc = 0;
+      let watchdog = 0;
       let settled = false;
 
       const clean = () => {
         if (raf) cancelAnimationFrame(raf);
-        if (vfc && video.cancelVideoFrameCallback) video.cancelVideoFrameCallback(vfc);
+        if (watchdog) clearTimeout(watchdog);
         video.removeEventListener('error', fail);
-        video.removeEventListener('ended', tick);
+        video.removeEventListener('ended', finish);
       };
       const finish = () => {
         if (settled) return;
@@ -161,25 +161,43 @@ window.Film = (function () {
         video.pause();
         reject(new Error('video playback failed'));
       };
-      let tick = () => {
-        if (token !== this.token) { finish(); return; }
+      /* An interruption is not a failure. A transition that is cut short —
+         because the visitor switched apps, took a call, or locked the screen —
+         must not be mistaken for a device that cannot play the film, or one
+         notification would drop the invitation to static frames for the rest of
+         the visit with no way back. */
+      const abort = () => {
+        if (settled) return;
+        settled = true;
+        clean();
+        video.pause();
+        const stop = new Error('playback interrupted');
+        stop.aborted = true;
+        reject(stop);
+      };
+      const tick = () => {
+        if (token !== this.token) { abort(); return; }
         const now = video.currentTime;
         if (onFrame) onFrame(now, false);
         if (now >= end - slop || video.ended) finish();
-        else schedule();
-      };
-      const schedule = () => {
-        if (settled) return;
-        if (video.requestVideoFrameCallback) vfc = video.requestVideoFrameCallback(tick);
         else raf = requestAnimationFrame(tick);
       };
 
       video.addEventListener('error', fail, { once: true });
-      video.addEventListener('ended', tick, { once: true });
+      video.addEventListener('ended', finish, { once: true });
       video.playbackRate = 1;
       const started = video.play();
       if (started && started.catch) started.catch(fail);
-      schedule();
+      // Some Android implementations have stopped delivering video-frame
+      // callbacks after a seek while playback itself continued. A normal rAF
+      // boundary check is cheap here (only copy styles move), and this watchdog
+      // guarantees a broken media clock can never run the film to the end.
+      // A hidden page stops rAF and pauses playback, so the deadline passing
+      // there says nothing about the device — only that nobody is watching.
+      watchdog = setTimeout(() => {
+        if (document.hidden || video.paused) abort(); else fail();
+      }, Math.max(2500, (end - video.currentTime) * 1800 + 1200));
+      raf = requestAnimationFrame(tick);
     });
   };
 

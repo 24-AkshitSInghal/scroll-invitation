@@ -126,6 +126,8 @@ const runtime = {
     framesPerClip: theme.frameCount,
     high: `assets/video/invitation-720.mp4?v=${ctx.build}`,
     lite: `assets/video/invitation-540.mp4?v=${ctx.build}`,
+    reverseHigh: `assets/video/invitation-720-reverse.mp4?v=${ctx.build}`,
+    reverseLite: `assets/video/invitation-540-reverse.mp4?v=${ctx.build}`,
     posters: posters.map((_, i) => `assets/posters/${String(i).padStart(2, '0')}.webp?v=${ctx.build}`),
   },
   crossfade: theme.crossfade,
