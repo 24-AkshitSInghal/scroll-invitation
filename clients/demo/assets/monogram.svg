@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 700" width="700" height="700" role="img" aria-label="Aarav and Anaya monogram">
+  <circle cx="350" cy="350" r="250" fill="none" stroke="#b8934c" stroke-opacity=".75" stroke-width="3"/>
+  <circle cx="350" cy="350" r="267" fill="none" stroke="#b8934c" stroke-opacity=".38" stroke-width="1.5"/>
+  <g font-family="'Cormorant Garamond',Georgia,serif" font-style="italic" text-anchor="middle" fill="#a8842f">
+    <text x="286" y="430" font-size="250">A</text>
+    <text x="414" y="430" font-size="250">A</text>
+    <text x="350" y="398" font-size="104" fill-opacity=".75">&amp;</text>
+  </g>
+</svg>

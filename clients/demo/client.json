@@ -1,0 +1,106 @@
+{
+  "theme": "flowers-cloud-bird",
+  "url": "demo-invitation.vercel.app",
+
+  "site": {
+    "title": "Aarav & Anaya — Engagement Invitation",
+    "description": "With the blessings of our families — the engagement of Aarav Mehta and Anaya Kapoor. 14 February 2027, The Rambagh Lawns, Jaipur.",
+    "ogImage": "assets/posters/03.webp"
+  },
+
+  "invocation": { "src": "ganesh.webp", "alt": "Shri Ganesh" },
+
+  "couple": {
+    "groom": "Aarav Mehta",
+    "bride": "Anaya Kapoor",
+    "groomShort": "Aarav",
+    "brideShort": "Anaya",
+    "shortPair": "Aarav & Anaya"
+  },
+  "hashtag": "AaravAurAnaya",
+
+  "open": {
+    "eyebrow": "You are invited",
+    "lede": "A celebration written in the clouds.",
+    "cue": "Swipe up to begin"
+  },
+
+  "coupleBlock": {
+    "eyebrow": "Together with our families",
+    "lede": "Two hearts, one beautiful beginning.",
+    "rings": "interlocking-rings.png"
+  },
+  "photoCaption": "Said Yes to Forever",
+
+  "family": {
+    "eyebrow": "With the blessings of our families",
+    "groomRole": "Son of",
+    "groomParents": "Mrs. Kavita Mehta<br>&amp; Mr. Rajeev Mehta",
+    "brideRole": "Daughter of",
+    "brideParents": "Mrs. Sunita Kapoor<br>&amp; Mr. Vikram Kapoor"
+  },
+
+  "event": {
+    "name": "Engagement Ceremony",
+    "dateISO": "2027-02-14",
+    "dateBig": "14",
+    "dateRest": "February 2027",
+    "dateStacked": "February<br>2027",
+    "weekday": "Sunday",
+    "time": "6:30 PM onwards",
+    "startUTC": "20270214T130000Z",
+    "endUTC": "20270214T180000Z",
+    "saveLabel": "Mark the Calendar",
+    "revealLabel": "Reveal the date"
+  },
+
+  "venue": {
+    "eyebrow": "The Venue",
+    "name": "The Rambagh Lawns",
+    "address": "Bhawani Singh Road<br>Jaipur, Rajasthan",
+    "mapQuery": "Rambagh Palace, Bhawani Singh Road, Jaipur, Rajasthan",
+    "mapLabel": "Open map"
+  },
+
+  "rsvp": {
+    "title": "Will you join us?",
+    "deadline": "Kindly respond by 1 February 2027",
+    "nameLabel": "Your name",
+    "namePlaceholder": "Full name",
+    "attendLabel": "Will you attend?",
+    "yes": "Yes",
+    "no": "No",
+    "messageLabel": "A note for the couple",
+    "messagePlaceholder": "Your blessings…",
+    "submit": "Send my RSVP",
+    "thanks": "Your response is with us. We cannot wait to celebrate together.",
+    "endpoint": null,
+    "whatsapp": null
+  },
+
+  "finale": {
+    "line": "Aarav meets Anaya,<br>and forever finds its"
+  },
+
+  "hosts": {
+    "line": "With love &amp; blessings",
+    "eyebrow": "Heartily welcome by",
+    "family": "Mehta Family",
+    "town": "Jaipur",
+    "phones": [
+      { "display": "9800000001", "tel": "+919800000001" },
+      { "display": "9800000002", "tel": "+919800000002" }
+    ]
+  },
+
+  "photo": { "src": "couple.webp", "width": 1000, "height": 1561 },
+  "logo": "monogram.svg",
+
+  "music": { "file": "song", "title": "Kudmayi", "volume": 0.55 },
+
+  "room": {
+    "eyebrow": "You are invited",
+    "meta": "The Rambagh Lawns<br>Jaipur, Rajasthan",
+    "hint": "Swipe up and down to move through it"
+  }
+}

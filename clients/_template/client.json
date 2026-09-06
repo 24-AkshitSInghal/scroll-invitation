@@ -5,6 +5,10 @@
     "description": "One sentence for link previews and search.",
     "ogImage": "assets/frames/c2/056.webp"
   },
+  "invocation": {
+    "src": "ganesh.webp",
+    "alt": "Shri Ganesh"
+  },
   "couple": {
     "groom": "Full Name",
     "bride": "Full Name",
@@ -23,6 +27,7 @@
     "lede": "Two hearts, one beautiful beginning.",
     "rings": "interlocking-rings.png"
   },
+  "photoCaption": "A line for the photo",
   "family": {
     "eyebrow": "With the blessings of our families",
     "groomRole": "Son of",
@@ -77,7 +82,8 @@
         "display": "0000000000",
         "tel": "+910000000000"
       }
-    ]
+    ],
+    "town": "Town"
   },
   "photo": {
     "src": "couple.jpg",
