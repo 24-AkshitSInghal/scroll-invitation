@@ -36,6 +36,7 @@
   --a-portrait-y:  0.422;
   --a-portrait-w:  0.47;
   --a-names-y:     0.800;
+  --cue-ink:       #7d2340;
   /* Breathing room above the phone's home-indicator/safe-area region. */
   --nav-clear:     42px;
   --a-reveal-x:    0.4935;
@@ -517,21 +518,56 @@ img { max-width: 100%; display: block; }
   background: linear-gradient(to bottom, transparent, var(--gold-soft), transparent);
 }
 
-/* -- scroll cue ----------------------------------------------------------- */
+/* -- the opening cue ------------------------------------------------------- */
+/* This is the only instruction in the whole invitation, and the one moment a
+   visitor can be stuck, so it says what to do and shows it. The old hint was a
+   gradient falling DOWN a hairline — correct when the film was scrolled, and
+   quietly wrong ever since it became a swipe up. */
 .cue {
-  display: grid; justify-items: center; gap: .9em; margin-top: 2.6vh;
-  font-size: 11px; letter-spacing: .26em; text-transform: uppercase; color: var(--gold-deep);
+  display: grid; justify-items: center; gap: .7em; margin-top: 2.4vh;
+  font-size: clamp(13px, 1.7vh, 16px); font-weight: 500;
+  letter-spacing: .22em; text-transform: uppercase;
+  /* The hashtag's ink rather than the gold of every other small-caps line: on a
+     pale sky it is the one colour in the palette that genuinely carries, and it
+     ties the first instruction to the mark the film closes on. The cream halo
+     lifts it off the clouds. */
+  color: var(--cue-ink, #7d2340);
+  text-shadow: 0 1px 2px rgba(255,250,242,.9),
+               0 0 12px rgba(255,250,242,.85),
+               0 0 26px rgba(255,250,242,.55);
 }
-.cue__line {
-  width: 1px; height: 34px; overflow: hidden;
-  background: rgba(184,147,76,.22); position: relative;
+.cue__gesture { display: block; width: 26px; line-height: 0; }
+.cue__gesture svg { width: 100%; height: auto; overflow: visible; }
+.cue__track {
+  fill: none; stroke: rgba(125,35,64,.34);
+  stroke-width: 1.4; stroke-linecap: round; vector-effect: non-scaling-stroke;
 }
-.cue__line::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(to bottom, transparent, var(--gold));
-  animation: cue 2.1s var(--ease) infinite;
+/* The fingertip: rises up the track and fades, over and over. */
+.cue__dot {
+  fill: var(--cue-ink, #7d2340);
+  animation: cueRise 2.3s var(--ease) infinite;
 }
-@keyframes cue { 0% { transform: translateY(-100%); } 60%,100% { transform: translateY(100%); } }
+.cue__chev {
+  fill: none; stroke: var(--cue-ink, #7d2340); stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  animation: cueChev 2.3s var(--ease) infinite;
+}
+@keyframes cueRise {
+  0%        { transform: translateY(0);      opacity: 0; }
+  18%       { opacity: 1; }
+  62%, 100% { transform: translateY(-19px);  opacity: 0; }
+}
+@keyframes cueChev {
+  0%, 100% { opacity: .3; }
+  55%      { opacity: 1; }
+}
+/* A hint that moves is the point, but not at the cost of anyone who has asked
+   the system for stillness — they get the arrow, held. */
+@media (prefers-reduced-motion: reduce) {
+  .cue__dot  { animation: none; opacity: .9; }
+  .cue__chev { animation: none; opacity: 1; }
+}
 .is-scrolled .cue { opacity: 0; transition: opacity .5s; }
 
 /* -- buttons -------------------------------------------------------------- */

@@ -23,6 +23,15 @@
       ]
     },
     {
+      "source": "/assets/event.ics",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/calendar; charset=utf-8"
+        }
+      ]
+    },
+    {
       "source": "/(css|js)/(.*)",
       "headers": [
         {

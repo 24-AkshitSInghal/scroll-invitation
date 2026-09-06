@@ -61,6 +61,10 @@ ctx.couple = {
   groomShortFull: client.couple.shortPair ? client.couple.shortPair.split('&')[0].trim() : client.couple.groom,
   brideShortFull: client.couple.shortPair ? client.couple.shortPair.split('&')[1].trim() : client.couple.bride,
 };
+ctx.event = {
+  ...client.event,
+  calendarFileName: `${String(client.hashtag || 'Invitation').replace(/[^a-z0-9_-]+/gi, '-')}-${client.event.dateISO}.ics`,
+};
 ctx.hosts = {
   ...client.hosts,
   phoneLinks: (client.hosts?.phones || [])
@@ -135,6 +139,13 @@ const runtime = {
     ? { src: `assets/${client.music.file}.m4a`, srcFallback: `assets/${client.music.file}.mp3`,
         title: client.music.title, volume: client.music.volume }
     : null,
+  // The film's own ambience, if the theme ships one. Optional: a theme without
+  // an audio/ folder simply plays the song alone.
+  ambience: existsSync(join(themeDir, 'audio', 'ambience.m4a'))
+    ? { src: `assets/audio/ambience.m4a?v=${ctx.build}`,
+        srcFallback: `assets/audio/ambience.mp3?v=${ctx.build}`,
+        volume: theme.ambienceVolume != null ? theme.ambienceVolume : 0.3 }
+    : null,
   event: {
     name: client.event.name, dateISO: client.event.dateISO,
     startUTC: client.event.startUTC, endUTC: client.event.endUTC,
@@ -174,6 +185,47 @@ html = html.replace('{{sections}}', sections)
 html = fill(html, 'index.html');
 writeFileSync(join(out, 'index.html'), html);
 
+/* Generate a real calendar file at build time. Mobile Safari is unreliable
+   with JavaScript-created data: downloads; a normal HTTPS .ics response opens
+   through the operating system's calendar/file handling on iOS and Android. */
+const plainText = (value) => String(value || '')
+  .replace(/<br\s*\/?\s*>/gi, '\n')
+  .replace(/<[^>]*>/g, '')
+  .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+  .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
+  .replace(/&amp;/gi, '&')
+  .replace(/&rsquo;/gi, '’')
+  .replace(/&nbsp;/gi, ' ')
+  .replace(/&lt;/gi, '<')
+  .replace(/&gt;/gi, '>')
+  .replace(/&quot;/gi, '"');
+const icsText = (value) => plainText(value)
+  .replace(/\\/g, '\\\\')
+  .replace(/\r?\n/g, '\\n')
+  .replace(/;/g, '\\;')
+  .replace(/,/g, '\\,');
+const calendar = [
+  'BEGIN:VCALENDAR',
+  'VERSION:2.0',
+  'CALSCALE:GREGORIAN',
+  'METHOD:PUBLISH',
+  'PRODID:-//ShubhMilan//Invitation//EN',
+  'BEGIN:VEVENT',
+  `UID:${String(client.hashtag || 'invitation').toLowerCase()}-${client.event.dateISO}@${client.url || 'invitation'}`,
+  `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
+  `DTSTART:${client.event.startUTC}`,
+  `DTEND:${client.event.endUTC}`,
+  `SUMMARY:${icsText(client.event.name)} — ${icsText(client.couple.groomShort)} & ${icsText(client.couple.brideShort)}`,
+  `LOCATION:${icsText(client.venue.name + '\n' + client.venue.address)}`,
+  `DESCRIPTION:${icsText('#' + client.hashtag)}`,
+  ...(client.url ? [`URL:https://${client.url}`] : []),
+  'STATUS:CONFIRMED',
+  'END:VEVENT',
+  'END:VCALENDAR',
+  '',
+].join('\r\n');
+writeFileSync(join(out, 'assets', 'event.ics'), calendar, 'utf8');
+
 cpSync(join(ROOT, 'engine', 'css'), join(out, 'css'), { recursive: true });
 cpSync(join(ROOT, 'engine', 'js'), join(out, 'js'), { recursive: true });
 
@@ -193,6 +245,9 @@ if (client.site?.ogImage?.startsWith('assets/frames/')) {
   mkdirSync(dirname(destination), { recursive: true });
   cpSync(source, destination);
 }
+const audioDir = join(themeDir, 'audio');
+if (existsSync(audioDir)) cpSync(audioDir, join(out, 'assets', 'audio'), { recursive: true });
+
 const videoDir = join(themeDir, 'video');
 if (existsSync(videoDir)) cpSync(videoDir, join(out, 'assets', 'video'), { recursive: true });
 else die(`theme "${client.theme}" has no video/ — run tools/timeline-video.sh ${client.theme}`);

@@ -6,6 +6,8 @@
 
   "frameCount": 56,
   "crossfade": 0.16,
+  "//ambience": "the clips' own audio, joined into one looping bed — see tools/ambience.sh",
+  "ambienceVolume": 0.3,
 
   "palette": {
     "--ivory": "#f7f1e6",
@@ -15,6 +17,7 @@
     "--gold-deep": "#8a6830",
     "--gold-soft": "#d9bd85",
     "--gold-bright": "#e7cf9a",
+    "--cue-ink": "#7d2340",
     "--blush": "#e6b3bd",
     "--magenta": "#8e2f4c",
     "--magenta-soft": "#b8546f",

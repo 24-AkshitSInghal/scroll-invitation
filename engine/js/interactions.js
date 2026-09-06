@@ -90,28 +90,6 @@
     setInterval(tick, 1000);
   })();
 
-  /* ------------------------------------------------------- add to calendar */
-  (function calendar() {
-    const btn = $('.js-cal');
-    if (!btn) return;
-    const e = cfg.event, v = cfg.venue;
-    const ics = [
-      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ShubhMilan//Invitation//EN',
-      'BEGIN:VEVENT',
-      'UID:shubhmilan-' + e.dateISO + '@invitation',
-      'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
-      'DTSTART:' + e.startUTC,
-      'DTEND:' + e.endUTC,
-      'SUMMARY:' + e.name + ' — ' + cfg.couple.shortGroom + ' & ' + cfg.couple.shortBride,
-      'LOCATION:' + [v.name].concat(v.lines).join(', ').replace(/,/g, '\\,'),
-      'DESCRIPTION:' + cfg.hashtag,
-      'END:VEVENT', 'END:VCALENDAR',
-    ].join('\r\n');
-
-    btn.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
-    btn.setAttribute('download', 'ShubhMilan-21-Sep-2026.ics');
-  })();
-
   /* -------------------------------------------------------------- open map */
   (function map() {
     const btn = $('.js-map');
@@ -145,6 +123,37 @@
     const TARGET = cfg.music.volume != null ? cfg.music.volume : 0.55;
     let fade = null;
 
+    /* The film's own ambience — the clips' audio, joined into one bed and
+       looped underneath the song.
+
+       It is a separate continuous track rather than the video's soundtrack
+       because the video only plays in one- to three-second bursts between
+       stops, and its reverse timeline plays backwards. Unmuting the element
+       itself would give stuttering ambience forwards and reversed birdsong
+       going back. A quiet bed under the music holds the room together instead,
+       and answers to the same mute button. */
+    const amb = cfg.ambience ? new Audio() : null;
+    const AMB_TARGET = cfg.ambience && cfg.ambience.volume != null ? cfg.ambience.volume : 0.3;
+    let ambFade = null;
+    if (amb) {
+      amb.loop = true;
+      amb.preload = 'metadata';
+      amb.volume = 0;
+      amb.src = amb.canPlayType('audio/mp4') ? cfg.ambience.src : cfg.ambience.srcFallback;
+    }
+
+    function ambRampTo(v, ms) {
+      if (!amb) return;
+      clearInterval(ambFade);
+      const from = amb.volume, steps = Math.max(1, Math.round(ms / 50));
+      let i = 0;
+      ambFade = setInterval(() => {
+        i++;
+        amb.volume = Math.min(1, Math.max(0, from + (v - from) * (i / steps)));
+        if (i >= steps) { clearInterval(ambFade); if (v === 0) amb.pause(); }
+      }, 50);
+    }
+
     function rampTo(v, ms) {
       clearInterval(fade);
       const from = a.volume, steps = Math.max(1, Math.round(ms / 50));
@@ -164,6 +173,7 @@
 
     function start() {
       if (mutedByUser) return Promise.resolve(false);
+      if (amb) amb.play().then(() => ambRampTo(AMB_TARGET, 2200)).catch(() => {});
       return a.play()
         .then(() => { paint(true); rampTo(TARGET, 1400); return true; })
         .catch(() => { paint(false); return false; });
@@ -194,6 +204,7 @@
         try { localStorage.setItem(KEY, '1'); } catch (err) {}
         paint(false);
         rampTo(0, 450);
+        ambRampTo(0, 450);
       }
     });
 
@@ -205,7 +216,10 @@
 
     // Pause while the tab is away, resume on return — unless it was muted.
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { if (!a.paused) { a.pause(); btn.dataset.auto = '1'; } }
+      if (document.hidden) {
+        if (amb && !amb.paused) amb.pause();
+        if (!a.paused) { a.pause(); btn.dataset.auto = '1'; }
+      }
       else if (btn.dataset.auto) { delete btn.dataset.auto; if (!mutedByUser) start(); }
     });
   })();

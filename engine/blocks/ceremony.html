@@ -4,6 +4,8 @@
   <p class="meta"><strong>{{event.time}}</strong></p>
   <div class="countdown" aria-label="Time remaining"></div>
   <div class="btnrow">
-    <a class="btn btn--ghost js-cal" href="#">Add to calendar</a>
+    <a class="btn btn--ghost js-cal" href="assets/event.ics?v={{build}}"
+       download="{{event.calendarFileName}}" target="_blank" rel="noopener"
+       type="text/calendar">Add to calendar</a>
   </div>
 </div>
