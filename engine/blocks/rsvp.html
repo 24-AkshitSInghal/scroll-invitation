@@ -3,6 +3,9 @@
   <p class="rsvp__sub">{{rsvp.deadline}}</p>
 
   <form class="rsvp__form" novalidate>
+    <div class="rsvp__trap" aria-hidden="true">
+      <label>Website <input name="website" type="text" tabindex="-1" autocomplete="off"></label>
+    </div>
     <div class="field">
       <label for="rsvp-name">{{rsvp.nameLabel}}</label>
       <input id="rsvp-name" name="name" type="text" autocomplete="name"
@@ -29,6 +32,7 @@
     </div>
 
     <button class="btn btn--gold" type="submit">{{rsvp.submit}}</button>
+    <p class="rsvp__error" role="alert" hidden>We could not save your response. Please check your connection and try again.</p>
     <a class="btn btn--ghost js-wa" href="#" hidden>Reply on WhatsApp</a>
   </form>
 

@@ -231,6 +231,8 @@
     const done = $('.rsvp__done');
     const doneName = $('.rsvp__done-name');
     const btn = form.querySelector('button[type=submit]');
+    const errorMessage = form.querySelector('.rsvp__error');
+    const submitLabel = btn.textContent;
     form.addEventListener('submit', (ev) => {
       ev.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
@@ -242,6 +244,7 @@
 
       btn.disabled = true;
       btn.textContent = 'Sending…';
+      if (errorMessage) errorMessage.hidden = true;
 
       const finish = (ok) => {
         // Never lose a response to a network hiccup — keep a local copy either way.
@@ -250,6 +253,14 @@
           all.push(Object.assign({ delivered: ok }, data));
           localStorage.setItem('shubhmilan.rsvp', JSON.stringify(all));
         } catch (e) {}
+
+        if (!ok) {
+          btn.disabled = false;
+          btn.textContent = submitLabel;
+          if (errorMessage) errorMessage.hidden = false;
+          return;
+        }
+
         doneName.textContent = data.name.trim().split(/\s+/)[0];
         form.hidden = true;
         done.hidden = false;

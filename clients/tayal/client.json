@@ -63,7 +63,7 @@
     "messagePlaceholder": "Your blessings…",
     "submit": "Send my RSVP",
     "thanks": "Your response is with us. We cannot wait to celebrate together.",
-    "endpoint": null,
+    "endpoint": "/api/rsvp",
     "whatsapp": null
   },
   "finale": {

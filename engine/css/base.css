@@ -750,6 +750,10 @@ img { max-width: 100%; display: block; }
     0 18px 40px -20px rgba(90,66,34,.45);
   text-align: left;
 }
+.rsvp__trap {
+  position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
 .rsvp__title {
   margin: 0 0 .2em; text-align: center;
   font-family: var(--font-display); font-style: italic;
@@ -807,6 +811,10 @@ img { max-width: 100%; display: block; }
 .choice input:focus-visible + span { outline: 2px solid var(--magenta); outline-offset: 2px; }
 
 .rsvp .btn { width: 100%; justify-content: center; margin-top: .5em; }
+.rsvp__error {
+  margin: .7em 0 0; color: #8d2f2f; font-size: 12px; line-height: 1.45;
+  text-align: center;
+}
 .rsvp__note {
   margin: 1.3em 0 0; text-align: center;
   font-size: 11px; letter-spacing: .1em; color: var(--ink-soft); opacity: .9;
