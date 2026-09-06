@@ -25,7 +25,8 @@
 
   "coupleBlock": {
     "eyebrow": "Together with our families",
-    "lede": "Two hearts, one beautiful beginning."
+    "lede": "Two hearts, one beautiful beginning.",
+    "rings": "interlocking-rings.png"
   },
 
   "family": {
@@ -75,13 +76,14 @@
   },
 
   "finale": {
-    "line": "Your presence will make<br>our celebration complete"
+    "line": "Shubhanu meets Shubhangi,<br>and forever finds its"
   },
 
   "hosts": {
     "line": "With love &amp; blessings",
     "eyebrow": "Heartily welcome by",
     "family": "Tayal Family",
+    "town": "Gangoh",
     "phones": [
       { "display": "9557723663", "tel": "+919557723663" },
       { "display": "7900970001", "tel": "+917900970001" }

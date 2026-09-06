@@ -239,6 +239,18 @@
         doneName.textContent = data.name.trim().split(/\s+/)[0];
         form.hidden = true;
         done.hidden = false;
+
+        /* Carry them onward once the thank-you has been read. Sending is the one
+           moment the visitor has finished with a slide rather than merely
+           arrived at it, so leaving them parked on a spent form is a dead end —
+           but move too soon and the acknowledgement never lands. */
+        setTimeout(() => {
+          const film = window.FILM;
+          if (!film || typeof film.goTo !== 'function') return;
+          if (film.moving && film.moving()) return;
+          const next = film.at() + 1;
+          if (next < film.stops.length) film.goTo(next);
+        }, 2200);
       };
 
       if (cfg.rsvp.endpoint) {
