@@ -36,6 +36,10 @@
   --a-portrait-y:  0.422;
   --a-portrait-w:  0.47;
   --a-names-y:     0.800;
+  /* Height the navigator occupies at the foot of the stage, plus breathing room.
+     Any copy anchored low in video space is clamped above this, so a short
+     viewport can never slide a line of text under the buttons. */
+  --nav-clear:     104px;
   --a-reveal-x:    0.4935;
   --a-reveal-y:    0.4776;
   --a-reveal-w:    0.735;
@@ -364,7 +368,8 @@ img { max-width: 100%; display: block; }
 .open__tag {
   position: absolute;
   left: calc(var(--vx, 0px) + 0.50 * var(--vw, 100%));
-  top:  calc(var(--vy, 0px) + var(--a-tag-y) * var(--vh, 100%));
+  top:  min(calc(var(--vy, 0px) + var(--a-tag-y) * var(--vh, 100%)),
+            calc(var(--vph, 100vh) - var(--nav-clear)));
   transform: translateX(-50%);
   white-space: nowrap;
 }
@@ -377,8 +382,8 @@ img { max-width: 100%; display: block; }
 /* -- type ----------------------------------------------------------------- */
 .eyebrow {
   margin: 0 0 1.5em;
-  font-size: clamp(9px, 1.15vh, 12px);
-  letter-spacing: .42em; text-transform: uppercase;
+  font-size: clamp(11.5px, 1.5vh, 15px);
+  letter-spacing: .3em; text-transform: uppercase;
   font-weight: 500; color: var(--gold-deep);
 }
 .eyebrow::after {
@@ -404,7 +409,7 @@ img { max-width: 100%; display: block; }
 }
 .lede {
   margin: 1.5em auto 0; max-width: 26ch;
-  font-size: clamp(12px, 1.7vh, 15px); line-height: 1.75;
+  font-size: clamp(14px, 2vh, 17.5px); line-height: 1.75;
   color: var(--ink-soft); font-weight: 300;
 }
 .hashtag {
@@ -426,8 +431,8 @@ img { max-width: 100%; display: block; }
 }
 .meta {
   margin: 1.1em 0 0;
-  font-size: clamp(11px, 1.5vh, 14px); line-height: 1.9;
-  letter-spacing: .08em; color: var(--ink-soft);
+  font-size: clamp(13px, 1.8vh, 16px); line-height: 1.9;
+  letter-spacing: .06em; color: var(--ink-soft);
 }
 .meta strong { font-weight: 500; color: var(--ink); letter-spacing: .04em; }
 
@@ -465,7 +470,8 @@ img { max-width: 100%; display: block; }
 .portrait__names {
   position: absolute;
   left: calc(var(--vx, 0px) + 0.50 * var(--vw, 100%));
-  top:  calc(var(--vy, 0px) + var(--a-names-y) * var(--vh, 100%));
+  top:  min(calc(var(--vy, 0px) + var(--a-names-y) * var(--vh, 100%)),
+            calc(var(--vph, 100vh) - var(--nav-clear)));
   transform: translateX(-50%);
   margin: 0; white-space: nowrap;
   font-family: var(--font-tag);
@@ -484,12 +490,12 @@ img { max-width: 100%; display: block; }
 }
 .families__side { }
 .families__role {
-  font-size: clamp(9px, 1.05vh, 11px); letter-spacing: .34em; text-transform: uppercase;
+  font-size: clamp(11.5px, 1.4vh, 14px); letter-spacing: .24em; text-transform: uppercase;
   color: var(--gold); margin: 0 0 .7em;
 }
 .families__name {
   margin: 0; font-family: var(--font-display);
-  font-size: clamp(16px, 2.3vh, 24px); line-height: 1.45; color: var(--ink);
+  font-size: clamp(18.5px, 2.7vh, 27px); line-height: 1.5; color: var(--ink);
 }
 .families__rule {
   width: 1px; height: 3.4vh; margin: 0 auto;
@@ -499,7 +505,7 @@ img { max-width: 100%; display: block; }
 /* -- scroll cue ----------------------------------------------------------- */
 .cue {
   display: grid; justify-items: center; gap: .9em; margin-top: 2.6vh;
-  font-size: 9px; letter-spacing: .34em; text-transform: uppercase; color: var(--gold-deep);
+  font-size: 11px; letter-spacing: .26em; text-transform: uppercase; color: var(--gold-deep);
 }
 .cue__line {
   width: 1px; height: 34px; overflow: hidden;
@@ -581,8 +587,8 @@ img { max-width: 100%; display: block; }
 .reveal__btn {
   justify-self: center; align-self: center;
   padding: 1.05em 2.1em; border: 0; border-radius: 999px; cursor: pointer;
-  font-family: var(--font-body); font-size: clamp(11px, 1.5vh, 13px);
-  letter-spacing: .2em; text-transform: uppercase; white-space: nowrap;
+  font-family: var(--font-body); font-size: clamp(12.5px, 1.7vh, 15px); font-weight: 500;
+  letter-spacing: .16em; text-transform: uppercase; white-space: nowrap;
   background: linear-gradient(135deg, #c8a462, var(--gold) 55%, #9c7838);
   color: #fffaf0;
   box-shadow: 0 8px 22px -8px rgba(146,110,44,.6);
@@ -620,7 +626,7 @@ img { max-width: 100%; display: block; }
 
 /* the revealed date, lit gold */
 .reveal__label {
-  font-size: clamp(10px, 1.3vh, 13px); letter-spacing: .38em; text-transform: uppercase;
+  font-size: clamp(12px, 1.6vh, 16px); letter-spacing: .26em; text-transform: uppercase;
   color: var(--gold-deep); margin: 0 0 .8em;
 }
 .reveal__date {
@@ -632,8 +638,8 @@ img { max-width: 100%; display: block; }
   letter-spacing: -.02em; margin-right: .04em;
 }
 .reveal__day {
-  margin: .7em 0 0; font-size: clamp(11px, 1.5vh, 14px);
-  letter-spacing: .28em; text-transform: uppercase; color: var(--gold-deep);
+  margin: .7em 0 0; font-size: clamp(12.5px, 1.7vh, 16px);
+  letter-spacing: .2em; text-transform: uppercase; color: var(--gold-deep);
 }
 .reveal.is-revealed .reveal__date { animation: glow 2.6s ease-in-out .9s infinite; }
 @keyframes glow {
@@ -654,7 +660,7 @@ img { max-width: 100%; display: block; }
 }
 .countdown__cell span {
   display: block; margin-top: .7em;
-  font-size: 8.5px; letter-spacing: .24em; text-transform: uppercase; color: var(--gold);
+  font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold);
 }
 
 /* -- venue ---------------------------------------------------------------- */
@@ -663,8 +669,8 @@ img { max-width: 100%; display: block; }
   font-size: clamp(23px, 3.5vh, 38px); color: var(--ink);
 }
 .venue__addr {
-  margin: 1.1em 0 0; font-size: clamp(11px, 1.5vh, 13.5px); line-height: 1.85;
-  color: var(--ink-soft); letter-spacing: .05em;
+  margin: 1.1em 0 0; font-size: clamp(13px, 1.8vh, 16px); line-height: 1.85;
+  color: var(--ink-soft); letter-spacing: .04em;
 }
 
 /* -- RSVP (scene 7) -------------------------------------------------------- */
@@ -698,20 +704,20 @@ img { max-width: 100%; display: block; }
 }
 .rsvp__sub {
   margin: 0 0 1.6em; text-align: center;
-  font-size: clamp(9px, 1.05vh, 10.5px); letter-spacing: .1em;
+  font-size: clamp(10.5px, 1.3vh, 12.5px); letter-spacing: .08em;
   text-transform: uppercase; color: var(--gold-deep); white-space: nowrap;
 }
 .field { margin-bottom: 1.05em; }
 .field > label,
 .fieldset > legend {
   display: block; margin-bottom: .55em; padding: 0;
-  font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-soft);
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft);
 }
 .field input,
 .field select,
 .field textarea {
   width: 100%; padding: .8em .9em;
-  font-family: var(--font-body); font-size: 13px; font-weight: 300; color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; font-weight: 400; color: var(--ink);
   background: rgba(255,255,255,.72);
   border: 0; border-radius: 2px;
   box-shadow: inset 0 0 0 1px rgba(184,147,76,.34);
@@ -732,7 +738,7 @@ img { max-width: 100%; display: block; }
 .choice input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
 .choice span {
   display: block; padding: .8em .5em; text-align: center; border-radius: 2px;
-  font-size: 11px; letter-spacing: .1em;
+  font-size: 13px; letter-spacing: .08em;
   background: rgba(255,255,255,.6);
   box-shadow: inset 0 0 0 1px rgba(184,147,76,.34);
   transition: all .22s var(--ease);
@@ -747,11 +753,11 @@ img { max-width: 100%; display: block; }
 .rsvp .btn { width: 100%; justify-content: center; margin-top: .5em; }
 .rsvp__note {
   margin: 1.3em 0 0; text-align: center;
-  font-size: 9.5px; letter-spacing: .14em; color: var(--ink-soft); opacity: .8;
+  font-size: 11px; letter-spacing: .1em; color: var(--ink-soft); opacity: .9;
 }
 .rsvp__done { text-align: center; padding: 2.2em .5em; }
 .rsvp__done .display { font-size: clamp(20px, 2.8vh, 28px); }
-.rsvp__done p { margin: 1em 0 0; font-size: 12.5px; line-height: 1.8; color: var(--ink-soft); }
+.rsvp__done p { margin: 1em 0 0; font-size: 14.5px; line-height: 1.8; color: var(--ink-soft); }
 
 /* -- finale (scene 8) ------------------------------------------------------ */
 /* No monogram here — the film already draws it. The names and the hashtag are
@@ -1011,8 +1017,8 @@ img { max-width: 100%; display: block; }
 .nav__btn {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 9px 16px; border: 0; border-radius: 999px; cursor: pointer;
-  font-family: var(--font-body); font-size: 11px;
-  letter-spacing: .2em; text-transform: uppercase; white-space: nowrap;
+  font-family: var(--font-body); font-size: 12.5px; font-weight: 500;
+  letter-spacing: .16em; text-transform: uppercase; white-space: nowrap;
   background: transparent; color: var(--gold-deep);
   transition: background .3s var(--ease), color .3s var(--ease),
               transform .3s var(--ease), opacity .3s var(--ease);
@@ -1034,9 +1040,9 @@ img { max-width: 100%; display: block; }
 .nav__btn:disabled { opacity: .28; cursor: default; }
 
 .nav__count {
-  font-family: var(--font-body); font-size: 10px; letter-spacing: .16em;
-  color: var(--ink-soft); opacity: .6; min-width: 42px; text-align: center;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-body); font-size: 11.5px; letter-spacing: .12em;
+  color: var(--ink-soft); opacity: .6; min-width: 54px; text-align: center;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 
 /* While the camera is flying, the controls stay put but stop accepting presses:
@@ -1046,10 +1052,34 @@ img { max-width: 100%; display: block; }
 .nav.is-busy .nav__btn--next { opacity: .55; }
 
 @media (max-width: 400px) {
-  .nav__btn { padding: 9px 13px; font-size: 10px; letter-spacing: .16em; }
-  .nav__count { min-width: 36px; }
+  .nav__btn { padding: 9px 13px; font-size: 11.5px; letter-spacing: .12em; }
+  .nav__count { min-width: 48px; font-size: 11px; }
 }
 /* In the desktop phone shell the navigator belongs to the phone, not the room. */
 @media (min-width: 861px) {
   .device .nav { position: absolute; bottom: 20px; }
+}
+
+/* -- the invocation -------------------------------------------------------- */
+/* Shri Ganesh opens the invitation, above the greeting. Sized against the
+   viewport height rather than width so it never crowds the copy beneath it on a
+   short screen, and kept to the painted area of the film like everything else. */
+.invocation {
+  margin: 0 0 2.8vh; display: grid; justify-items: center;
+}
+.invocation img {
+  width: auto; height: clamp(132px, 28vh, 280px);
+  max-width: min(72vw, 360px); object-fit: contain;
+  /* The artwork carries a real alpha channel — its white ground was cut out, so
+     it composites straight onto the sky. No multiply: that darkened the pinks
+     and turned the gold muddy, which is only worth doing for art still sitting
+     on an opaque white square. */
+  filter: drop-shadow(0 5px 14px rgba(146,110,44,.14));
+}
+/* The families' home towns, set quietly under the names. */
+.families__name em {
+  display: inline-block; margin-top: .2em;
+  font-style: normal; font-family: var(--font-body);
+  font-size: .60em; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--gold-deep);
 }

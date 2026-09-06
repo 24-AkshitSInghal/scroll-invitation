@@ -31,9 +31,9 @@
   "family": {
     "eyebrow": "With the blessings of our families",
     "groomRole": "Son of",
-    "groomParents": "Mr. Narendra Tayal<br>&amp; Mrs. Seema Tayal",
+    "groomParents": "Mrs. Seema Tayal<br>&amp; Mr. Narendra Tayal<br><em>(Gangoh)</em>",
     "brideRole": "Daughter of",
-    "brideParents": "Dr. Dushyant Bansal<br>&amp; Dr. Renu Bansal"
+    "brideParents": "Dr. Renu Bansal<br>&amp; Dr. Dushyant Bansal<br><em>(Hapur)</em>"
   },
 
   "event": {
@@ -46,7 +46,7 @@
     "time": "5:00 PM onwards",
     "startUTC": "20260921T113000Z",
     "endUTC": "20260921T163000Z",
-    "saveLabel": "Save the Date",
+    "saveLabel": "Mark the Calendar",
     "revealLabel": "Reveal the date"
   },
 
@@ -88,8 +88,10 @@
     ]
   },
 
+  "photoCaption": "Said Yes to Forever",
   "photo": { "src": "couple.jpg", "width": 760, "height": 1188 },
   "logo": "monogram.png",
+  "invocation": { "src": "ganesh.webp", "alt": "Shri Ganesh" },
 
   "music": { "file": "song", "title": "Kudmayi", "volume": 0.55 },
 

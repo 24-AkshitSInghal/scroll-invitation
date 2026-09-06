@@ -155,6 +155,14 @@ for (const tier of ['frames', 'frames-720']) {
 cpSync(join(clientDir, 'assets'), join(out, 'assets'), { recursive: true });
 cpSync(join(ROOT, 'vercel.json'), join(out, 'vercel.json'));
 
+/* Assets a client references but has not supplied. The page degrades quietly
+   when one is absent, which is precisely why the build has to say so. */
+for (const [label, file] of [['photo', client.photo?.src], ['logo', client.logo],
+                             ['invocation', client.invocation?.src]]) {
+  if (file && !existsSync(join(clientDir, 'assets', file)))
+    console.warn(`  ! ${label}: clients/${CLIENT}/assets/${file} is missing — it will not render`);
+}
+
 if (missing.size) {
   console.warn('  ! unresolved placeholders (rendered empty):');
   for (const m of missing) console.warn('      {{' + m + '}}');
