@@ -24,6 +24,8 @@
     "4. The scene mapping follows what each clip shows; still watch it end to end"
   ],
 
+  "clips": "mahal_night_wedding/clips",
+
   "frameCount": 56,
   "crossfade": 0.16,
 
@@ -70,6 +72,8 @@
   "scenes": [
     { "id": "open", "label": "Welcome", "block": "open", "clip": "c1",
       "place": "center", "scrim": "own",
+      "//stops": "two rests in one scene: the greeting, then the monogram once it has drawn itself",
+      "stops": [0.02, 0.96],
       "scroll": 2.0, "settle": 0.70, "copy": [-0.05, -0.01, 1, 1] },
 
     { "id": "couple", "label": "The Couple", "block": "couple", "clip": "c2",

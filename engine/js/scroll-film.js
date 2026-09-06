@@ -1,12 +1,18 @@
 /* ============================================================================
-   scroll-film.js — scroll-driven camera flight for the ShubhMilan invitation
+   scroll-film.js — the camera flight for the ShubhMilan invitation
    ----------------------------------------------------------------------------
-   Scroll drives time, not motion: eight pre-rendered 9:16 clips form one
-   continuous camera flight, and scroll position picks the frame to show.
+   A gesture drives time, not motion: eight pre-rendered 9:16 clips form one
+   continuous camera flight, and a playhead `viewY` picks the frame to show.
+
+   The document itself does not scroll. `viewY` rests on one of a fixed list of
+   stops and is animated between them by `goTo()`; a swipe, wheel notch or arrow
+   key moves exactly one stop. That is what makes the film affordable on a cheap
+   phone — the whole path is known before the animation starts, so decoding runs
+   ahead of it. See "Stops, not scrolling" in the README.
 
    The film is a WebP frame sequence rather than video — see film.js for why, and
    for how frames are fetched, decoded in a window, and composited. This file
-   owns the mapping from scroll position to frame, the copy, and the chrome.
+   owns the mapping from `viewY` to frame, the copy, and the chrome.
 
    The pacing knobs that shape that mapping (`settle`, `linger`, `from`/`to`,
    `anchored`) are documented in invite.config.js.
@@ -113,8 +119,8 @@
     b.setAttribute('aria-label', s.label);
     b.innerHTML = '<span class="rail__label">' + s.label + '</span>';
     b.addEventListener('click', () => {
-      const sc = scenes[i];
-      scrollTo({ top: sc.start + (sc.end - sc.start) * 0.62, behavior: reduce ? 'auto' : 'smooth' });
+      const k = stops.findIndex((st) => st.sc === scenes[i]);
+      if (k >= 0) goTo(k);
     });
     rail.appendChild(b);
   });
@@ -136,32 +142,234 @@
   /* -- scroll read (layout + opacity, cheap) -------------------------------- */
   let activeIndex = -1;
 
-  /* The playhead. Frames are indexed straight off scroll position, so a hard
-     flick used to jump the index by dozens of frames at once and read as a cut —
-     the camera appearing somewhere new rather than travelling there.
-     `viewY` chases the real scroll instead of matching it, and every scene
-     derives from `viewY`: frame, opacity and copy fade alike. A flick becomes a
-     fast fly-through of the actual film instead of a teleport.
+  /* ── the playhead ────────────────────────────────────────────────────────
+     The film no longer follows a finger. It moves between a fixed set of STOPS —
+     one per scene — and the code drives every transition.
 
-     The per-frame step is capped so the film cannot advance faster than the eye
-     can follow — about 2 film-frames per rendered frame at the floor — and the
-     cap widens with distance so a rail jump across the whole invitation still
-     arrives in well under a second rather than crawling. */
+     That is not a styling choice, it is what made it usable on a cheap phone.
+     Free scrubbing decodes frames *during* the gesture, at whatever rate the
+     finger dictates, and a slow decoder simply cannot keep up: you get the
+     stutter. With stops, the whole path is known the moment the gesture ends, so
+     decoding runs AHEAD of the animation instead of racing it — and if the
+     decoder still falls behind, the transition stretches rather than skipping
+     frames. It degrades to slightly slower, never to juddery.
+
+     Everything downstream is unchanged: `viewY` still means the same thing, and
+     read() still derives frame, opacity and copy fade from it. Only what moves
+     `viewY` is different. */
   let viewY = 0, settled = true;
 
+  const stops = [];            // { y, scene } in scene order
+  let cur = 0;                 // which stop we are at or heading to
+  let moving = false, fromY = 0, toY = 0, elapsed = 0, dur = 0, lastNow = 0;
+
+  function buildStops() {
+    stops.length = 0;
+    scenes.forEach((sc) => {
+      // A scene rests where its copy is fully in. `stops` in the theme overrides
+      // that — the opening needs two, one on the greeting and one on the
+      // monogram once it has drawn itself.
+      const locals = sc.cfg.stops || [clamp(sc.cfg.copy ? sc.cfg.copy[1] : 0.5)];
+      locals.forEach((l) => stops.push({ y: sc.start + (sc.end - sc.start) * clamp(l), sc }));
+    });
+    stops.sort((a, b) => a.y - b.y);
+  }
+
+  const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+
+  /* Which frame is on screen at a given position, and is it decoded yet? This is
+     the same mapping read() uses, pulled out so the animation can ask about a
+     position it has not moved to yet. */
+  function frameAt(y) {
+    let best = null, bestOp = -1;
+    for (let i = 0; i < N; i++) {
+      const sc = scenes[i];
+      const local = clamp((y - sc.start) / (sc.end - sc.start));
+      let outside = 0;
+      if (y < sc.start) outside = sc.start - y;
+      else if (y > sc.end) outside = y - sc.end;
+      const op = smooth(1 - outside / ((cfg.crossfade || 0.1) * vh));
+      if (op > bestOp) {
+        bestOp = op;
+        const f0 = sc.cfg.from != null ? sc.cfg.from : 0;
+        const f1 = sc.cfg.to != null ? sc.cfg.to : 1;
+        const t = f0 + (f1 - f0) * clamp(lingerEase(local, sc.linger) / sc.settle);
+        best = { seq: sc.seq, idx: Math.round(t * (sc.seq.count - 1)) };
+      }
+    }
+    return best;
+  }
+
+  const ready = (y) => { const f = frameAt(y); return !f || !!f.seq.bitmaps[f.idx]; };
+
+  /* Warm a path in the order it will be played. The order is known and
+     monotonic, so nothing is decoded twice and nothing is decoded in vain —
+     which is exactly what free scrubbing could never promise.
+
+     `frac` limits how much of the path to warm: the head start asks for the
+     first stretch only, so the transition can begin while the rest decodes
+     behind it. */
+  function primePath(y0, y1, frac) {
+    const steps = 26;
+    const end = Math.max(1, Math.round(steps * (frac == null ? 1 : frac)));
+    const keep = performance.now() + KEEP_WARM;
+    for (let k = 0; k <= end; k++) {
+      const f = frameAt(y0 + (y1 - y0) * (k / steps));
+      if (f) { f.seq.decode(f.idx); f.seq.keepUntil = keep; }
+    }
+  }
+
+  /* How long a warmed-but-unseen sequence is allowed to hold its frames. Long
+     enough to survive the gap between warming the next stop and flying to it;
+     short enough that wandering back and forth does not accumulate the whole
+     film in memory. */
+  const KEEP_WARM = 3000;
+
+  /* How long a sequence must have been off screen before its frames are freed.
+     Long enough to outlast a fast pass through a scene, short enough that the
+     film does not accumulate in memory. */
+  const IDLE_RELEASE = 2000;
+
+  /* How much of the opening stretch is decoded before a transition is allowed to
+     start. Without it the film sets off, immediately runs out of frames and is
+     held by `advance()` — which is correct but reads as a stumble right at the
+     moment attention is highest. Waiting a beat first is invisible; stumbling is
+     not. Capped so a slow device never feels stuck on the button. */
+  const HEAD_START = 0.22, HEAD_WAIT_MAX = 900;
+  const STALL_MAX = 140;          // longest the camera may wait on one frame
+  let arming = null, heldSince = 0;
+
+  function pathReady(y0, y1, frac) {
+    const steps = 26;
+    const end = Math.max(1, Math.round(steps * frac));
+    for (let k = 0; k <= end; k++) {
+      const f = frameAt(y0 + (y1 - y0) * (k / steps));
+      if (f && !f.seq.bitmaps[f.idx]) return false;
+    }
+    return true;
+  }
+
+  function goTo(i, instant) {
+    i = Math.max(0, Math.min(stops.length - 1, Math.round(i)));
+    if (!stops.length) return;
+    cur = i;
+    arming = null;
+    heldSince = 0;
+    fromY = viewY;
+    toY = stops[i].y;
+
+    // A slower camera is not only better-looking, it is cheaper: the same frames
+    // spread over more time is a lower demand on the decoder. This is the one
+    // knob that trades wall-clock for smoothness, and smoothness wins — the film
+    // is meant to read like footage, not like a page turn.
+    const span = Math.abs(toY - fromY) / (vh || 800);
+    dur = (reduce || instant) ? 0 : Math.min(4200, 1500 + span * 520);
+    elapsed = 0;
+    moving = dur > 0 && Math.abs(toY - fromY) > 1;
+    if (!moving) { viewY = toY; settled = false; Film.setMoving(false); syncNav(); return; }
+
+    settled = false;
+    Film.setMoving(true);
+    primePath(fromY, toY, HEAD_START);
+    // Hold at the near end until the opening stretch exists, then let it run.
+    arming = { until: performance.now() + HEAD_WAIT_MAX };
+    syncNav();
+  }
+
   function advance() {
-    const y = scrollY || pageYOffset;
-    if (reduce) { viewY = y; return true; }           // no extra motion
-    const d = y - viewY;
-    const ad = Math.abs(d);
-    if (ad < 0.6) { viewY = y; return true; }         // arrived
-    const far = Math.min(12, ad / (vh || 800));
-    const cap = (vh || 800) * (0.055 + 0.02 * far);
-    let step = d * 0.16;
-    if (step > cap) step = cap; else if (step < -cap) step = -cap;
-    viewY += step;
+    const now = performance.now();
+    const dt = lastNow ? Math.min(48, now - lastNow) : 16;
+    lastNow = now;
+    if (!moving) return true;
+
+    // Still waiting for the head start. Keep decoding, hold the camera still.
+    if (arming) {
+      if (now < arming.until && !pathReady(fromY, toY, HEAD_START)) {
+        primePath(fromY, toY, HEAD_START);
+        return false;
+      }
+      arming = null;
+      primePath(fromY, toY);           // the rest, now that we are under way
+    }
+
+    /* Only let the clock run when the frame we are about to show exists, so a
+       slow decoder slows the camera rather than making it skip — but bound the
+       wait. A jump across the whole film (a rail dot, or End) crosses more
+       scenes than can be decoded at any speed, and an unbounded hold there did
+       not slow the flight, it stopped it: twelve seconds in, still moving.
+
+       After STALL_MAX of waiting we go on regardless. `nearest()` then draws the
+       closest frame that does exist, which is the degradation this design was
+       always meant to have — a slightly stale frame, never a stall. */
+    const next = elapsed + dt;
+    const peek = fromY + (toY - fromY) * easeInOut(Math.min(1, next / dur));
+    if (next >= dur || ready(peek) || (heldSince && now - heldSince > STALL_MAX)) {
+      elapsed = next;
+      heldSince = 0;
+    } else if (!heldSince) {
+      heldSince = now;
+    }
+
+    const p = Math.min(1, elapsed / dur);
+    viewY = fromY + (toY - fromY) * easeInOut(p);
+    if (p >= 1) {
+      moving = false;
+      Film.setMoving(false);   // back to a small, symmetric window
+      syncNav();
+      return true;
+    }
     return false;
   }
+
+  /* ── navigation ───────────────────────────────────────────────────────────
+     Two buttons, and nothing else that moves the film.
+
+     Swipe-to-advance was ambiguous in both directions: an overlay could swallow
+     it, and there was no way to tell a reader that a swipe was the thing to do.
+     A named control says what it does, cannot be intercepted by whatever happens
+     to be under the thumb, and — the reason it is here — makes the next
+     destination knowable while the reader is standing still, which is when there
+     is time to decode it. Keys stay wired for anyone not using a pointer. */
+  const nav = $('.nav');
+  const btnPrev = $('.nav__btn--prev');
+  const btnNext = $('.nav__btn--next');
+
+  function syncNav() {
+    if (!nav) return;
+    const first = cur <= 0, last = cur >= stops.length - 1;
+    if (btnPrev) btnPrev.disabled = first;
+    if (btnNext) btnNext.disabled = last;
+    nav.classList.toggle('is-busy', moving);
+    const label = $('.nav__count');
+    if (label) label.textContent = (cur + 1) + ' / ' + stops.length;
+  }
+
+  /* Decode the neighbouring transitions while the reader is at rest. This is the
+     whole reason the buttons pay for themselves: at a stop there are exactly two
+     places to go, both known, and the reader is reading. By the time they press,
+     the opening stretch is usually already in memory. */
+  let idleWarm = 0;
+  function warmNeighbours() {
+    if (moving || !stops.length) return;
+    const now = performance.now();
+    if (now < idleWarm) return;
+    idleWarm = now + 400;
+    if (cur + 1 < stops.length) primePath(viewY, stops[cur + 1].y, HEAD_START);
+    if (cur - 1 >= 0) primePath(viewY, stops[cur - 1].y, HEAD_START * 0.6);
+  }
+
+  if (btnNext) btnNext.addEventListener('click', () => { if (!moving) goTo(cur + 1); });
+  if (btnPrev) btnPrev.addEventListener('click', () => { if (!moving) goTo(cur - 1); });
+
+  addEventListener('keydown', (e) => {
+    if (e.target && e.target.closest && e.target.closest('input,textarea,select')) return;
+    if (moving) return;
+    const k = e.key;
+    if (k === 'ArrowDown' || k === 'PageDown' || k === ' ') { e.preventDefault(); goTo(cur + 1); }
+    else if (k === 'ArrowUp' || k === 'PageUp') { e.preventDefault(); goTo(cur - 1); }
+    else if (k === 'Home') { e.preventDefault(); goTo(0); }
+    else if (k === 'End') { e.preventDefault(); goTo(stops.length - 1); }
+  });
 
   /* The clips are 1080×1920 and the scenes are `object-fit: cover`, so on a tall
      phone the film is cropped at the sides and a percentage of the STAGE is no
@@ -215,9 +423,13 @@
     let off = 0;
     scenes.forEach((sc) => { sc.start = off * vh; off += sc.w; sc.end = off * vh; });
     total = off;
-    // +1vh of runway so the final scene can complete its flight.
-    track.style.height = (total * vh + vh) + 'px';
+    // Nothing scrolls the document any more — the film is driven by goTo(). The
+    // track stays in the markup only so the bands keep their pixel arithmetic.
+    track.style.height = '0px';
+    buildStops();
+    if (!moving) viewY = stops.length ? stops[Math.min(cur, stops.length - 1)].y : 0;
     read();
+    syncNav();
   }
 
   function read() {
@@ -308,8 +520,8 @@
       if (roomScene) roomScene.textContent = SECTIONS[ci].label;
     }
 
-    progress.style.transform = 'scaleY(' + clamp(y / (total * vh)) + ')';
-    document.documentElement.classList.toggle('is-scrolled', y > vh * 0.35);
+    progress.style.transform = 'scaleY(' + clamp(total ? y / (total * vh) : 0) + ')';
+    document.documentElement.classList.toggle('is-scrolled', cur > 0);
   }
 
   /* -- render loop ---------------------------------------------------------- */
@@ -319,22 +531,38 @@
     // re-measure when it moves — the picture can never fall out of step.
     if (viewportH() !== appliedH) measure();
 
-    // Advance the playhead toward the scroll position and re-read only while it
-    // is actually moving; once settled this costs one subtraction per frame.
+    // Advance the playhead toward the stop it is travelling to, and re-read only
+    // while it is actually moving; once settled this costs one comparison a frame.
     const arrived = advance();
     if (!arrived || !settled) { read(); settled = arrived; }
+    else warmNeighbours();     // idle time is decode time for the next two stops
 
     // Composite the visible scenes the way stacked opacity layers would: the
     // faintest as the base, the rest blended over it. Across a seam both sides
     // hold the same picture, so the dissolve is invisible either way.
     const vis = [];
     for (let i = 0; i < N; i++) if (scenes[i].visible) vis.push(scenes[i]);
+
+    /* Release anything neither on screen nor on its way there — but only after
+       it has been off screen for a while. Releasing the moment a scene stops
+       being painted looks tidier and is much worse: on a long jump scenes flick
+       in and out of visibility, and each reappearance re-decoded its whole
+       window. That thrash saturated the decode threads and took the render loop
+       from 60fps to 2. Hysteresis costs a few megabytes and avoids all of it. */
+    const nowMs = performance.now();
+    for (let i = 0; i < N; i++) {
+      const sc = scenes[i];
+      if (sc.visible) { sc.seq.lastSeen = nowMs; continue; }
+      if ((sc.seq.keepUntil || 0) >= nowMs) continue;
+      if (nowMs - (sc.seq.lastSeen || 0) < IDLE_RELEASE) continue;
+      sc.seq.release();
+    }
     if (vis.length) {
       vis.sort((p, q) => p.op - q.op);
       for (let k = 0; k < vis.length; k++) {
         const sc = vis[k];
         const idx = sc.frameIndex;
-        sc.seq.window(idx);
+        sc.seq.window(idx, moving ? (toY >= fromY ? 1 : -1) : 0);
         renderer.paint(sc.seq.nearest(idx), k === 0 ? 1 : sc.op);
       }
     }
@@ -342,17 +570,11 @@
   }
 
   /* -- wiring --------------------------------------------------------------- */
-  addEventListener('scroll', () => { settled = false; }, { passive: true });
-
-  // Mobile browsers fire `resize` whenever the URL bar slides. Re-running layout
-  // there rebuilds the track height and yanks the scroll position, so on touch we
-  // only relayout when the width actually changed (rotation still arrives via
-  // orientationchange).
   /* A phone fires `resize` every time the URL bar slides away, and the viewport
-     genuinely grows by ~80px when it does. Rebuilding the bands there would jump
-     the page mid-scroll, but ignoring it outright — which is what this used to do
-     — left the canvas at its old height and a bare strip along the bottom. So:
-     re-measure always, re-lay-out only when the width actually changed. */
+     genuinely grows by ~80px when it does. Rebuilding the bands there moves every
+     stop, but ignoring it outright — which is what this used to do — left the
+     canvas at its old height and a bare strip along the bottom. So: re-measure
+     always, re-lay-out only when the width actually changed. */
   addEventListener('resize', () => {
     if (innerWidth !== laidOutW) layout();
     else measure();
@@ -365,12 +587,12 @@
   addEventListener('orientationchange', () => setTimeout(layout, 120));
   addEventListener('load', layout);
 
-  // rAF stops while the tab is hidden, so the playhead is wherever it was left.
-  // Snap it to the real scroll position on return rather than flying the film
-  // through everything the visitor scrolled past while looking elsewhere.
+  // rAF stops while the tab is hidden, so no time passes for the playhead and it
+  // is still mid-transition where it was left. Discard the time spent away rather
+  // than counting it as animation, and repaint from wherever it actually is.
   addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
-    viewY = scrollY || pageYOffset;
+    lastNow = 0;                       // don't count time spent away as animation
     settled = false;
     read();
   });
@@ -400,6 +622,7 @@
     document.documentElement.classList.remove('is-locked');
     setTimeout(() => { if (curtain.parentNode) curtain.remove(); }, 1200);
     window.dispatchEvent(new CustomEvent('invitation:open'));   // music listens
+    goTo(0, true);
   }
 
   document.documentElement.classList.add('is-locked');
@@ -421,5 +644,6 @@
   // unclear whether anything was theirs to control.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
-  window.FILM = { scenes, layout, read, isMobile };
+  window.FILM = { scenes, stops, layout, read, isMobile, goTo,
+                  at: () => cur, y: () => viewY, moving: () => moving };
 })();

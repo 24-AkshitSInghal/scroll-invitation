@@ -16,7 +16,7 @@
   "open": {
     "eyebrow": "You are invited",
     "lede": "A celebration written in the clouds.",
-    "cue": "Scroll to begin"
+    "cue": "Tap next to begin"
   },
   "coupleBlock": {
     "eyebrow": "Together with our families",
@@ -92,6 +92,7 @@
   "room": {
     "eyebrow": "You are invited",
     "meta": "Venue Name<br>City, State",
-    "hint": "Scroll to move the film"
-  }
+    "hint": "Use next and back to move through it"
+  },
+  "url": "your-site.vercel.app"
 }

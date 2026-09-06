@@ -203,13 +203,74 @@ Everything loads behind **Open Invitation**. It costs a wait, but it is the only
 way to promise the scroll never stutters — and the tap is a real user gesture,
 which is also the one moment iOS will reliably let the music start.
 
-### The damped playhead
+### Two buttons, and why they are the fast path
 
-Frames indexed straight off scroll meant a hard flick jumped dozens of frames and
-read as a cut. `viewY` chases the scroll rather than matching it, and every scene
-derives from it, so a flick becomes a fast fly-through of the actual film. The
-per-frame step is capped, and the cap widens with distance so a rail jump still
-arrives promptly. Tune it in `advance()`.
+The page does not scroll and has no swipe gesture. `html, body` are
+`overflow: hidden`, the track is 0px tall, and the film moves only when **Back**
+or **Next** is pressed (arrow keys and the rail are wired too).
+
+A theme declares where the film comes to rest. Every scene contributes one stop —
+the middle of its copy window — and a scene may name its own with
+`"stops": [0.02, 0.96]`, which is how the opening holds twice: once on the
+greeting, once on the monogram after it has drawn itself.
+
+The buttons are not only an affordance. Standing at a stop there are exactly two
+places to go, both known, and the reader is reading — so `warmNeighbours()`
+decodes into both while nothing is happening. A swipe could never promise that,
+because the destination was not known until the finger lifted.
+
+Transitions run 1.5–4.2s. A slower camera is not just better-looking, it is
+cheaper: the same frames spread over more time is a lower demand on the decoder.
+
+### What actually made it fast
+
+Three findings, all measured on this film. The first two were bugs.
+
+**Never resize during decode.** The engine decoded every frame to the canvas
+height. On the 720 tier that is an *upscale*, and it dominated the whole budget:
+
+| decode | cost |
+| --- | --- |
+| 956×1700, upscaled from the 720 tier | 12.3ms |
+| 506×900, downscaled from the 720 tier | 6.4ms |
+| 720×1280, native, no resize options | **2.8ms** |
+
+Both resized cases lose, in opposite directions, for the same reason: the
+resampler is the expensive part, not the pixel count. The GPU upscales for free
+at `drawImage`, so decode should hand it the file as it is. `applyDecodeSize()`
+now passes no resize options unless the source is genuinely taller than the
+canvas — only the 1920 tier on a small screen. **4.4× on the hottest operation
+in the app.**
+
+**Free what was warmed but never shown.** `window()` only runs for a sequence
+being *painted*, so frames the engine decoded ahead along a path and then did not
+use stayed resident for the whole visit — 134MB at rest. Sequences are now
+released once they are neither on screen nor on their way there.
+
+**But release lazily.** Freeing a sequence the moment it stops being painted was
+much worse: on a long jump scenes flick in and out of visibility, and each
+reappearance re-decoded its entire window. That thrash took the render loop from
+60fps to 2. `IDLE_RELEASE` holds frames for 2s after a scene leaves the screen.
+
+Net: 134MB → 39MB at rest, 190MB → 98MB peak, and no held frames on any
+transition.
+
+### The camera may slow down; it may never stop
+
+`advance()` only lets the clock run when the frame it is about to show exists, so
+a slow decoder slows the camera instead of making it skip. That hold has to be
+**bounded**. Unbounded, a jump across the whole film — a rail dot, or `End` —
+crosses more scenes than can be decoded at any speed, and the flight did not slow
+down, it stopped: twelve seconds in, still moving, 617 held frames.
+
+After `STALL_MAX` (140ms) on one frame it proceeds regardless, and `nearest()`
+draws the closest frame that does exist. A slightly stale frame, never a stall —
+which is the degradation this design was always meant to have.
+
+`HEAD_START` decodes the first fifth of a path before the transition is allowed
+to begin, capped at 900ms. Without it the film sets off, immediately runs out of
+frames and is held right at the moment attention is highest. Waiting a beat first
+is invisible; stumbling is not.
 
 ### Video-space coordinates
 
@@ -236,9 +297,12 @@ Both cost real usability before they were found, and both are easy to reintroduc
   a swipe starting on it could not scroll the page. It is a **button** now.
 - The RSVP card had `overscroll-behavior: contain` with nothing to scroll inside
   it, so swipes over the form went nowhere.
+- `OWNED` once listed `.reveal` and `.rsvp`, which exempted a third of the screen
+  from swipe navigation. Swipe is gone now — the buttons cannot be intercepted by
+  whatever happens to be under the thumb, which is half of why they are there.
 
-**Anything overlaying the film must either let vertical gestures through or be
-small.**
+Three times the failure was an overlay quietly claiming the middle of the screen.
+Named controls in a bar of their own end the whole category.
 
 ### It behaves like a card
 
@@ -270,6 +334,45 @@ N=72 THEME=<theme> ./tools/frames.sh <clips-dir>     # finer, more bytes
 Both tiers, every time, or phones will show a stale film. `N` frames span each
 clip's true first and last frame whatever you choose, so the chain stays
 seam-exact — set the same number as `frameCount` in `theme.json`.
+
+## The shareable video
+
+```bash
+tools/.venv/bin/python tools/video.py tayal      # → dist-video/tayal-invitation.mp4
+```
+
+One MP4 of the same film with the same words, for WhatsApp. It reads the same
+`client.json` and `theme.json` as the site — nothing is written twice — and takes
+about six minutes.
+
+**The two interactive things become the reason to open the site.** The date is
+simply shown revealed rather than behind a button, and the RSVP panel becomes a
+card that says *RSVP on the invitation* with the client's `url`. The video is the
+thing that travels; the site is where anyone actually replies. Set `url` in
+`client.json` or that call to action renders blank.
+
+Three things this had to solve, all worth knowing before editing it:
+
+- **Scroll can hold; video cannot.** A scene with `settle` below 1 reaches its
+  last frame early and then waits, motionless, for as long as someone keeps
+  scrolling. A clip just ends. Played straight, the date card flashed over a
+  medallion that had not finished forming, and the photograph — which owns only
+  the last quarter of its clip — got a window too short to read and was dropped
+  entirely. Clips carrying a scene that needs dwell are extended with a freeze of
+  their final frame, and those overlays are placed inside it.
+- **Overlays are drawn with Pillow, not ffmpeg's `drawtext`.** The design leans
+  on heavy letter-spacing and `drawtext` cannot do tracking at all. Each overlay
+  is composed to a transparent 1080×1920 PNG; ffmpeg only fades and composites.
+- **A still PNG has no timeline.** Passed to ffmpeg plainly it is one frame at
+  t=0, the fades have nothing to run along, and no text appears — which looks
+  exactly like the overlays were forgotten. Each is `-loop`ed to the film's
+  length.
+
+`TARGET_MB` (default 15) sizes the encode so WhatsApp passes it through instead
+of re-compressing it. `TARGET_MB=0` gives a full-quality master for anything else.
+
+Fonts live in `engine/fonts/` and Pillow in `tools/.venv` (`python3 -m venv
+tools/.venv && tools/.venv/bin/pip install Pillow`).
 
 ## Turning on RSVP
 

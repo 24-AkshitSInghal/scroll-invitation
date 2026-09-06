@@ -118,6 +118,7 @@ const runtime = {
     ...(sc.from != null ? { from: sc.from } : {}),
     ...(sc.to != null ? { to: sc.to } : {}),
     copy: sc.copy,
+    ...(sc.stops ? { stops: sc.stops } : {}),
     ...(sc.anchored ? { anchored: true } : {}),
   })),
 };

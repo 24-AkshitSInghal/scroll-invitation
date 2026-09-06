@@ -1,5 +1,6 @@
 {
   "theme": "flowers-cloud-bird",
+  "url": "tayalfamilyinvitation.vercel.app",
 
   "site": {
     "title": "Dr. Shubhanu & Dr. Shubhangi — Engagement Invitation",
@@ -19,7 +20,7 @@
   "open": {
     "eyebrow": "You are invited",
     "lede": "A celebration written in the clouds.",
-    "cue": "Scroll to begin"
+    "cue": "Tap next to begin"
   },
 
   "coupleBlock": {
@@ -95,6 +96,6 @@
   "room": {
     "eyebrow": "You are invited",
     "meta": "The Mansion Banquet<br>Meerut, Uttar Pradesh",
-    "hint": "Scroll to move the film"
+    "hint": "Use next and back to move through it"
   }
 }
